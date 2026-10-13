@@ -1,6 +1,6 @@
 // Service worker di Nodo: fa funzionare l'app anche offline.
 // Quando pubblichi una nuova versione, aumenta il numero qui sotto.
-const VERSION = "nodo-v0.6.0";
+const VERSION = "nodo-v0.6.1";
 const APP_SHELL = [
   "./",
   "./index.html",
