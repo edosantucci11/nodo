@@ -1,0 +1,1339 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nodo</title>
+<meta name="description" content="Note, attività, progetti e calendario in un'unica app.">
+<meta name="theme-color" content="#ECEEF2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#06080B" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nodo">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: una colonna da telefono (max 480px); sotto, un campo di colore lento che dà profondità al vetro; sopra, superfici Liquid Glass e un dock flottante a capsula */
+:root{
+  --bg:#ECEEF2; --ink:#0D1015; --muted:#5D6572; --faint:#949BA6; --line:rgba(13,16,21,.08);
+  --glass:rgba(255,255,255,.56); --sheen:rgba(255,255,255,.55); --glass-edge:rgba(255,255,255,.78); --glass-hi:rgba(255,255,255,.95);
+  --glass-shadow:0 1px 2px rgba(15,25,40,.05),0 14px 36px rgba(15,25,40,.10);
+  --sheet:rgba(248,249,251,.80); --solid:#FFFFFF; --lens:rgba(255,255,255,.92); --input:rgba(255,255,255,.62); --tile:rgba(255,255,255,.88);
+  --accent:#4A4FC9; --accent-ink:#FFFFFF; --accent-soft:rgba(74,79,201,.12);
+  --amber:#C37C17; --amber-soft:rgba(195,124,23,.16);
+  --red:#D7423A; --orange:#CC7F0E; --blue:#2D6BD2; --p4:#A9AFB8;
+  --f1:rgba(92,98,230,.30); --f2:rgba(236,160,66,.28); --f3:rgba(196,110,214,.16);
+  --c1:#12766B; --c2:#6B4CC4; --c3:#C37C17; --c4:#C23E78; --c5:#2D6BD2; --c6:#3E8A2E;
+  --ease:cubic-bezier(.32,.72,0,1); --spring:cubic-bezier(.34,1.42,.52,1);
+  --sans:-apple-system, BlinkMacSystemFont, "SF Pro Text", "Geist", system-ui, "Segoe UI", sans-serif;
+  --display:-apple-system, BlinkMacSystemFont, "SF Pro Display", "Geist", system-ui, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#06080B; --ink:#F2F4F7; --muted:#9BA3AE; --faint:#646C78; --line:rgba(255,255,255,.08);
+  --glass:rgba(26,30,37,.50); --sheen:rgba(255,255,255,.07); --glass-edge:rgba(255,255,255,.11); --glass-hi:rgba(255,255,255,.16);
+  --glass-shadow:0 1px 0 rgba(255,255,255,.03),0 18px 44px rgba(0,0,0,.50);
+  --sheet:rgba(22,25,31,.82); --solid:#171B21; --lens:rgba(255,255,255,.13); --input:rgba(255,255,255,.06); --tile:rgba(20,23,29,.92);
+  --accent:#9EA2FF; --accent-ink:#10123A; --accent-soft:rgba(158,162,255,.16);
+  --amber:#F2B45C; --amber-soft:rgba(242,180,92,.15);
+  --red:#FF6A60; --orange:#F7A83A; --blue:#7DA9FF; --p4:#5A626E;
+  --f1:rgba(84,90,224,.40); --f2:rgba(205,130,36,.26); --f3:rgba(170,84,200,.24);
+  --c1:#4FC6B5; --c2:#A68DF0; --c3:#F2B45C; --c4:#F07DAE; --c5:#7DA9FF; --c6:#86CB6C; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#06080B; --ink:#F2F4F7; --muted:#9BA3AE; --faint:#646C78; --line:rgba(255,255,255,.08);
+  --glass:rgba(26,30,37,.50); --sheen:rgba(255,255,255,.07); --glass-edge:rgba(255,255,255,.11); --glass-hi:rgba(255,255,255,.16);
+  --glass-shadow:0 1px 0 rgba(255,255,255,.03),0 18px 44px rgba(0,0,0,.50);
+  --sheet:rgba(22,25,31,.82); --solid:#171B21; --lens:rgba(255,255,255,.13); --input:rgba(255,255,255,.06); --tile:rgba(20,23,29,.92);
+  --accent:#9EA2FF; --accent-ink:#10123A; --accent-soft:rgba(158,162,255,.16);
+  --amber:#F2B45C; --amber-soft:rgba(242,180,92,.15);
+  --red:#FF6A60; --orange:#F7A83A; --blue:#7DA9FF; --p4:#5A626E;
+  --f1:rgba(84,90,224,.40); --f2:rgba(205,130,36,.26); --f3:rgba(170,84,200,.24);
+  --c1:#4FC6B5; --c2:#A68DF0; --c3:#F2B45C; --c4:#F07DAE; --c5:#7DA9FF; --c6:#86CB6C; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.4;-webkit-font-smoothing:antialiased;overflow:hidden}
+*{box-sizing:border-box}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0;-webkit-tap-highlight-color:transparent;transition:transform .3s var(--spring)}
+button:active:not(:disabled){transform:scale(.96)}
+button:disabled{opacity:.45;cursor:default}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:10px}
+.ic{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.num{font-variant-numeric:tabular-nums}
+
+/* sfondo vivo */
+.ambient{position:fixed;inset:-15%;z-index:0;pointer-events:none;
+  background:radial-gradient(38% 32% at 12% 8%,var(--f1),transparent 70%),radial-gradient(42% 36% at 92% 28%,var(--f2),transparent 72%),radial-gradient(48% 40% at 35% 98%,var(--f3),transparent 72%)}
+.app{position:relative;z-index:1;max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column}
+body{margin:0;-webkit-text-size-adjust:100%}
+main{flex:1;overflow-y:auto;padding-inline:16px;padding-block:calc(18px + env(safe-area-inset-top,0px)) 150px;scrollbar-width:none;overscroll-behavior:contain}
+main::-webkit-scrollbar{display:none}
+
+/* vetro */
+.glass{background:linear-gradient(140deg,var(--sheen) 0%,transparent 42%) ,var(--glass);-webkit-backdrop-filter:blur(26px) saturate(175%);backdrop-filter:blur(26px) saturate(175%);
+  border:1px solid var(--glass-edge);box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi)}
+
+/* tipografia */
+.kick{font-size:12.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.lt{font-family:var(--display);font-size:38px;font-weight:700;letter-spacing:-.03em;line-height:1.05;margin:0;text-wrap:balance}
+.sub{font-family:var(--display);font-size:22px;font-weight:600;letter-spacing:-.02em;color:var(--muted)}
+h2{font-family:var(--display);font-size:20px;font-weight:700;letter-spacing:-.02em;margin:0}
+.stack{display:flex;flex-direction:column;gap:22px}
+.hd{display:flex;flex-direction:column;gap:2px;padding-top:6px}
+.sec{display:flex;flex-direction:column;gap:10px}
+.sechead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding-inline:4px}
+.link{color:var(--accent);font-weight:600;font-size:15px}
+.muted{color:var(--muted)}
+.hint{font-size:13px;color:var(--muted);margin:0;padding-inline:4px;line-height:1.5}
+.hint b{color:var(--ink);font-weight:600}
+.hint button{color:var(--accent);font-weight:600;font-size:13px;text-align:left}
+
+/* widget */
+.widgets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.wd{border-radius:24px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.wd b{font-family:var(--display);font-size:32px;font-weight:700;letter-spacing:-.03em;line-height:1.1}
+.wd span{font-size:13px;color:var(--muted);font-weight:500}
+.wd.warn b{color:var(--red)}
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.qt{border-radius:24px;padding:14px;display:flex;gap:12px;align-items:center;text-align:left;min-width:0}
+.qt b{display:block;font-weight:600;font-size:15.5px}
+.qt em{display:block;font-style:normal;font-size:12.5px;color:var(--muted);line-height:1.3}
+.qi{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;flex:none;background:var(--accent-soft);color:var(--accent)}
+.qt.ai{border:1.5px solid transparent;background:linear-gradient(var(--tile),var(--tile)) padding-box,conic-gradient(from var(--ang,0deg),var(--accent),var(--amber),var(--blue),var(--accent)) border-box;box-shadow:var(--glass-shadow);animation:spin 6s linear infinite}
+.qt.ai .qi{background:linear-gradient(135deg,var(--accent),var(--blue));color:#fff}
+@property --ang{syntax:"<angle>";initial-value:0deg;inherits:false}
+@keyframes spin{to{--ang:360deg}}
+.banner{display:flex;gap:10px;align-items:center;justify-content:space-between;font-size:13.5px;color:var(--muted);border-radius:18px;padding:10px 14px}
+
+/* liste */
+.list{border-radius:24px;overflow:hidden}
+.row{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;transition:max-height .45s var(--ease),opacity .3s ease,padding .45s var(--ease),border-color .3s}
+.row+.row{border-top:1px solid var(--line)}
+.row.leaving{max-height:0!important;opacity:0;padding-block:0;border-color:transparent}
+.row .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.ttl{overflow-wrap:anywhere;font-weight:500;transition:color .3s}
+.meta{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
+.meta .late{color:var(--red);font-weight:600}
+.empty{padding:18px 16px;color:var(--muted);font-size:14.5px}
+.check{width:24px;height:24px;border-radius:50%;border:1.75px solid var(--p4);flex:none;display:grid;place-items:center;margin-top:-1px;transition:background .3s var(--ease),border-color .3s,transform .45s var(--spring)}
+.check svg{width:14px;height:14px;fill:none;stroke:var(--accent-ink);stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:20;stroke-dashoffset:20;transition:stroke-dashoffset .35s var(--ease) .06s}
+.p1 .check{border-color:var(--red)} .p2 .check{border-color:var(--orange)} .p3 .check{border-color:var(--blue)}
+.done .check{background:var(--accent);border-color:var(--accent)}
+.done .check svg{stroke-dashoffset:0}
+.done .ttl{color:var(--faint);text-decoration:line-through}
+.pop .check{animation:pop .5s var(--spring)}
+@keyframes pop{35%{transform:scale(1.28)}}
+.x{color:var(--faint);padding:2px;margin:-2px -4px 0 0;opacity:.7;display:grid}
+.x:hover{opacity:1}
+.chiplink{color:var(--accent);font-weight:600;text-align:left;font-size:13px}
+.pj{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);font-weight:500}
+.pj i{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+/* linea del tempo */
+.ev,.now{display:grid;grid-template-columns:46px 12px minmax(0,1fr) auto;gap:10px;align-items:start}
+.tline .row+.row{border-top:0}
+.time{font-size:14px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:1px}
+.rail{position:relative;align-self:stretch;margin-block:-14px}
+.rail::before{content:"";position:absolute;left:5px;top:0;bottom:0;width:2px;border-radius:2px;background:var(--line)}
+.rail i{position:absolute;left:1px;top:19px;width:10px;height:10px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 3px var(--amber-soft)}
+.now .time,.now .ttl{color:var(--accent);font-weight:700;font-size:14px}
+.now .rail i{background:var(--accent);box-shadow:0 0 0 4px var(--accent-soft);animation:beat 2.4s ease-in-out infinite}
+@keyframes beat{50%{box-shadow:0 0 0 8px transparent}}
+.now{padding-block:6px}
+/* card */
+.cards{display:grid;gap:10px}
+.card{border-radius:24px;padding:16px;text-align:left;display:flex;flex-direction:column;gap:6px;width:100%}
+.card .ex{color:var(--muted);font-size:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.card strong{font-weight:600;font-size:16.5px;overflow-wrap:anywhere}
+.pin{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.07em;flex:none}
+.tag{font-size:12.5px;font-weight:600;color:var(--accent);background:var(--accent-soft);padding:2px 9px;border-radius:99px;white-space:nowrap}
+.tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.pcard{flex-direction:row;align-items:center;gap:14px;background:radial-gradient(90% 120% at 100% 0%,color-mix(in srgb,var(--pc) 20%,transparent),transparent 60%),linear-gradient(140deg,var(--sheen) 0%,transparent 42%),var(--glass)}
+.pcard .pm{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.pcard .pn{font-family:var(--display);font-size:20px;font-weight:700;letter-spacing:-.02em}
+.ring{flex:none;display:block}
+.ring .trk{stroke:var(--line)}
+.ring .fg{transition:stroke-dashoffset 1.1s var(--ease)}
+.ring text{font-size:12px;font-weight:700;fill:var(--ink);font-family:var(--sans)}
+.bar{height:6px;border-radius:9px;background:var(--line);overflow:hidden;display:block}
+.bar i{display:block;height:100%;width:0;border-radius:9px;transition:width 1.1s var(--ease)}
+.instant *{transition:none!important}
+/* controlli */
+.inrow{display:flex;gap:8px;align-items:center;border-radius:20px;padding:6px 6px 6px 16px}
+.inrow input{flex:1;min-width:0;border:0;background:transparent;padding:8px 0;font-size:16px}
+.inrow input:focus{outline:none}
+.inrow .ic{color:var(--muted)}
+.inrow:focus-within{box-shadow:var(--glass-shadow),0 0 0 3px var(--accent-soft)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;border-radius:16px;font-weight:600;color:var(--accent-ink);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 82%,#fff),var(--accent));box-shadow:0 8px 20px color-mix(in srgb,var(--accent) 28%,transparent),inset 0 1px 0 rgba(255,255,255,.35)}
+.btn.sm{padding:9px 14px;font-size:14.5px;border-radius:14px}
+.btn.ghost{color:var(--ink);background:linear-gradient(140deg,var(--sheen) 0%,transparent 42%),var(--glass);-webkit-backdrop-filter:blur(26px) saturate(175%);backdrop-filter:blur(26px) saturate(175%);border:1px solid var(--glass-edge);box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi)}
+.btn.danger{background:var(--red);color:#fff;box-shadow:none}
+.btn.round{width:44px;height:44px;padding:0;border-radius:50%}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.back{display:inline-flex;align-items:center;gap:4px;padding:8px 14px 8px 10px;border-radius:99px;font-weight:600;font-size:15px;align-self:flex-start}
+.seg{position:relative;display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));padding:3px;border-radius:16px;background:var(--input);border:1px solid var(--line)}
+.seg .thumb{position:absolute;top:3px;bottom:3px;left:3px;width:calc((100% - 6px)/var(--n,3));border-radius:13px;background:var(--lens);box-shadow:0 2px 8px rgba(0,0,0,.10),inset 0 1px 0 var(--glass-hi);transform:translateX(calc(var(--si,0)*100%));transition:transform .5s var(--spring)}
+.seg button{position:relative;z-index:1;padding:9px 4px;font-size:14px;font-weight:600;color:var(--muted);border-radius:13px;transition:color .25s,transform .3s var(--spring)}
+.seg button[aria-pressed="true"]{color:var(--ink)}
+.filters{display:flex;gap:8px;overflow-x:auto;padding:2px;scrollbar-width:none}
+.fbtn{padding:8px 14px;border-radius:99px;font-size:14px;font-weight:600;white-space:nowrap;color:var(--muted)}
+.fbtn[aria-pressed="true"]{color:var(--accent-ink);background:var(--accent);border-color:var(--accent);box-shadow:0 6px 14px color-mix(in srgb,var(--accent) 25%,transparent)}
+.sel{appearance:none;-webkit-appearance:none;padding:9px 34px 9px 14px;border-radius:14px;border:1px solid var(--line);background:var(--input) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23889' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E") no-repeat right 10px center/16px;color:var(--ink);font-size:15px;font-weight:500;max-width:100%}
+.lbl{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted);font-weight:500}
+/* calendario */
+.calp{border-radius:28px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.calhead{display:flex;justify-content:space-between;align-items:center}
+.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center}
+.grid .dow{font-size:12px;font-weight:600;color:var(--faint);padding-bottom:4px}
+.day{aspect-ratio:1;max-width:100%;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-variant-numeric:tabular-nums;font-size:15.5px;font-weight:500;transition:background .35s var(--ease),color .3s,transform .4s var(--spring)}
+.day.out{color:var(--faint);opacity:.55}
+.day.today{color:var(--accent);font-weight:700}
+.day.sel{background:var(--accent);color:var(--accent-ink);font-weight:700;box-shadow:0 6px 16px color-mix(in srgb,var(--accent) 30%,transparent)}
+.dots{display:flex;gap:3px;height:5px}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--amber)}
+.dot.t{background:var(--p4)}
+.day.sel .dot{background:var(--accent-ink)}
+/* focus */
+.focus{display:flex;flex-direction:column;align-items:center;gap:22px;text-align:center}
+.fdisc{width:min(280px,74vw);aspect-ratio:1;max-width:100%;border-radius:50%;position:relative;display:grid;place-items:center;transition:box-shadow .8s var(--ease)}
+.fdisc.run{animation:breathe 4s ease-in-out infinite}
+@keyframes breathe{50%{box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi),0 0 60px 6px var(--accent-soft)}}
+.fdisc svg{position:absolute;inset:14px;width:calc(100% - 28px);height:calc(100% - 28px);transform:rotate(-90deg)}
+.fdisc circle.fg{transition:stroke-dashoffset .6s linear,stroke .5s}
+.fnum{display:flex;flex-direction:column;align-items:center;gap:4px;position:relative}
+.clock{font-family:var(--display);font-size:58px;font-weight:600;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.row-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.field{display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;font-size:13.5px;color:var(--muted);font-weight:500}
+/* dock */
+.dock{position:fixed;left:0;right:0;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:10;display:flex;justify-content:center;pointer-events:none;padding-inline:16px}
+.dock .in{width:100%;max-width:448px;display:flex;gap:10px;align-items:center}
+.tabs{pointer-events:auto;flex:1;min-width:0;height:64px;border-radius:32px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:4px;position:relative}
+.lens{position:absolute;top:4px;bottom:4px;left:4px;width:calc((100% - 8px)/5);border-radius:28px;background:var(--lens);box-shadow:0 3px 12px rgba(0,0,0,.10),inset 0 1px 0 var(--glass-hi);transform:translateX(calc(var(--ti,0)*100%));transition:transform .6s var(--spring),opacity .3s}
+.tabs button{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10.5px;font-weight:600;color:var(--muted);min-width:0;border-radius:26px;transition:color .3s,transform .3s var(--spring)}
+.tabs button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.tabs button[aria-current="page"]{color:var(--accent)}
+.fab{pointer-events:auto;width:64px;height:64px;border-radius:50%;display:grid;place-items:center;color:var(--accent);flex:none}
+/* fogli */
+.scrim{position:fixed;inset:0;z-index:20;background:rgba(4,7,11,.30);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:100%;max-width:480px;max-height:90%;overflow-y:auto;margin:0 8px calc(8px + env(safe-area-inset-bottom,0px));border-radius:34px;padding:12px 18px 20px;display:flex;flex-direction:column;gap:14px;
+  background:linear-gradient(140deg,var(--sheen) 0%,transparent 40%),var(--sheet);-webkit-backdrop-filter:blur(40px) saturate(180%);backdrop-filter:blur(40px) saturate(180%);border:1px solid var(--glass-edge);box-shadow:0 30px 80px rgba(0,0,0,.35),inset 0 1px 0 var(--glass-hi)}
+.grab{width:38px;height:5px;border-radius:3px;background:var(--faint);opacity:.5;align-self:center}
+.shead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.shead h2{display:flex;align-items:center;gap:8px}
+.xbtn{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--input);color:var(--muted)}
+.sheet textarea{width:100%;min-height:84px;resize:vertical;border:1px solid var(--line);border-radius:18px;padding:14px;background:var(--input);font-size:17px;line-height:1.4}
+.sheet textarea:focus{outline:none;border-color:color-mix(in srgb,var(--accent) 50%,var(--line));box-shadow:0 0 0 3px var(--accent-soft)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;min-height:28px}
+.chip{font-size:13px;padding:4px 11px;border-radius:99px;background:var(--accent-soft);color:var(--accent);font-weight:600;animation:chipin .35s var(--spring) both}
+.chip.e{background:var(--amber-soft);color:var(--amber)}
+@keyframes chipin{from{transform:scale(.8);opacity:0}}
+.ailist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:20px;overflow:hidden;background:var(--input)}
+.ailist label{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;cursor:pointer;animation:rise .5s var(--ease) both;animation-delay:calc(var(--i,0)*45ms)}
+.ailist label+label{border-top:1px solid var(--line)}
+.ailist input{margin-top:2px;accent-color:var(--accent);width:18px;height:18px;flex:none}
+.ailist .k{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--accent)}
+.ailist .k.e{color:var(--amber)} .ailist .k.n{color:var(--blue)}
+.shimmer{font-weight:600;background:linear-gradient(90deg,var(--muted) 20%,var(--ink) 50%,var(--muted) 80%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shim 1.8s linear infinite}
+@keyframes shim{from{background-position:100% 0}to{background-position:-150% 0}}
+.aibody{display:flex;flex-direction:column;gap:12px;animation:fadein .4s ease both}
+.note-ai{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;margin:0;line-height:1.5}
+/* editor */
+.editor{position:fixed;inset:0;z-index:15;display:flex;justify-content:center;background:color-mix(in srgb,var(--bg) 70%,transparent);-webkit-backdrop-filter:blur(40px) saturate(160%);backdrop-filter:blur(40px) saturate(160%)}
+.editor .in{width:100%;max-width:480px;display:flex;flex-direction:column;height:100%}
+.edbar{display:flex;align-items:center;gap:8px;margin:calc(12px + env(safe-area-inset-top,0px)) 12px 0;padding:6px;border-radius:24px}
+.edbar .sp{flex:1}
+.ibtn{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--ink)}
+.ibtn[aria-pressed="true"]{color:var(--accent);background:var(--accent-soft)}
+.ibtn.del{color:var(--red)}
+.edbody{flex:1;overflow-y:auto;padding:18px 20px 40px;display:flex;flex-direction:column;gap:16px}
+.edbody input.title{font-family:var(--display);font-weight:700;font-size:30px;letter-spacing:-.03em;border:0;background:transparent;padding:0;width:100%}
+.edbody textarea{flex:1;min-height:300px;border:0;background:transparent;resize:none;font-size:17px;line-height:1.6;padding:0}
+.edbody input.title:focus,.edbody textarea:focus{outline:none}
+.prose{display:flex;flex-direction:column;gap:6px;font-size:17px;line-height:1.6}
+.prose p{margin:0;overflow-wrap:anywhere}
+.prose .li{padding-left:18px;position:relative}
+.prose .li::before{content:"";position:absolute;left:4px;top:.72em;width:5px;height:5px;border-radius:50%;background:var(--faint)}
+.prose h3{font-family:var(--display);font-size:21px;letter-spacing:-.02em;margin:8px 0 0}
+.prose .tl{display:flex;gap:12px;align-items:flex-start;padding:2px 0}
+.prose .tl .check{margin-top:3px}
+.prose .tl.done span{text-decoration:line-through;color:var(--faint)}
+.wl{color:var(--accent);font-weight:600;text-decoration:underline;text-decoration-thickness:1.5px;text-decoration-color:color-mix(in srgb,var(--accent) 40%,transparent);text-underline-offset:4px;font-size:inherit;text-align:left}
+.wl.new{color:var(--muted);text-decoration-style:dashed}
+.backs{border-radius:22px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.backs .kick{font-size:11.5px}
+/* toast */
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 10px);transform:translate(-50%,-170%);z-index:40;max-width:calc(100% - 32px);padding:11px 18px;border-radius:99px;font-size:15px;font-weight:600;display:flex;align-items:center;gap:10px;transition:transform .55s var(--ease)}
+.toast.show{transform:translate(-50%,0)}
+.toast i{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
+
+/* impostazioni */
+.gear{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;color:var(--ink);flex:none;margin-top:4px}
+.sgroup .srow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;min-height:54px}
+.sgroup .srow+.srow{border-top:1px solid var(--line)}
+.srow.col{flex-direction:column;align-items:stretch;gap:10px}
+.sl{display:flex;flex-direction:column;gap:2px;font-weight:500;min-width:0}
+.sl em{font-style:normal;font-size:13px;color:var(--muted);font-weight:400}
+.sw{position:relative;width:51px;height:31px;flex:none}
+.sw input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:pointer;z-index:1}
+.sw span{position:absolute;inset:0;border-radius:99px;background:color-mix(in srgb,var(--faint) 45%,transparent);transition:background .3s var(--ease)}
+.sw span::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#FFFFFF;box-shadow:0 2px 6px rgba(0,0,0,.22);transition:transform .45s var(--spring)}
+.sw input:checked+span{background:var(--accent)}
+.sw input:checked+span::after{transform:translateX(20px)}
+.sw input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.swatches{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.swatch{width:28px;height:28px;border-radius:50%;border:0;box-shadow:0 0 0 2px var(--bg),0 0 0 2px transparent;transition:box-shadow .3s var(--ease),transform .3s var(--spring)}
+.swatch[aria-pressed="true"]{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--ink)}
+input.tm{padding-right:14px;background-image:none;font-variant-numeric:tabular-nums}
+.sgroup .sel{max-width:58%}
+/* notifiche */
+#notifs{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);left:0;right:0;z-index:45;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;padding-inline:8px}
+.nb{pointer-events:auto;width:100%;max-width:440px;border-radius:26px;padding:12px 12px 12px 14px;display:flex;gap:12px;align-items:flex-start;background:linear-gradient(140deg,var(--sheen) 0%,transparent 42%),var(--sheet)}
+.nbi{width:38px;height:38px;border-radius:9px;overflow:hidden;flex:none;display:block}
+.nbi img{width:100%;height:100%;display:block}
+.nbm{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.nbt{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.nbt b{font-weight:700}
+.nbm strong{font-weight:600;overflow-wrap:anywhere}
+.nbb{font-size:14px;color:var(--muted)}
+.nba{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+@keyframes nbin{from{transform:translateY(-130%) scale(.96);opacity:0}}
+@keyframes nbout{to{transform:translateY(-130%) scale(.98);opacity:0}}
+html.calm *,html.calm *::before,html.calm *::after{animation:none!important;transition:none!important}
+html.solid .glass,html.solid .btn.ghost,html.solid .nb{background:var(--solid)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html.solid .sheet,html.solid .editor{background:var(--solid)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+
+/* presentazione iniziale */
+.onb{position:fixed;inset:0;z-index:50;display:flex;justify-content:center;background:color-mix(in srgb,var(--bg) 55%,transparent);-webkit-backdrop-filter:blur(30px) saturate(160%);backdrop-filter:blur(30px) saturate(160%)}
+.onb-in{width:100%;max-width:480px;height:100%;display:flex;flex-direction:column;padding-block:calc(14px + env(safe-area-inset-top,0px)) calc(22px + env(safe-area-inset-bottom,0px))}
+.onb-top{display:flex;justify-content:flex-end;padding-inline:20px;min-height:34px;align-items:center}
+.onb-view{flex:1;overflow:hidden;min-height:0}
+.onb-track{display:flex;height:100%;transform:translateX(calc(var(--oi,0) * -100%));transition:transform .65s var(--ease)}
+.onb-slide{flex:0 0 100%;min-width:0;height:100%;overflow-y:auto;padding:12px 24px;display:flex;flex-direction:column;justify-content:center;gap:18px}
+.onb-slide>*{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .7s var(--ease)}
+.onb-slide.on>*{opacity:1;transform:none}
+.onb-slide.on>*:nth-child(2){transition-delay:.08s}.onb-slide.on>*:nth-child(3){transition-delay:.16s}.onb-slide.on>*:nth-child(4){transition-delay:.24s}
+.onb-slide h2{font-size:32px;letter-spacing:-.035em;line-height:1.08;text-wrap:balance}
+.onb-slide p{margin:0;color:var(--muted);font-size:17px;line-height:1.5}
+.onb-logo{width:116px;height:116px;border-radius:27px;display:grid;place-items:center;background:radial-gradient(130% 120% at 15% 0%,#4B3A8C 0%,#1A1330 42%,#09070F 100%);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.22),0 18px 40px rgba(20,12,40,.35)}
+.onb-logo span{font-family:"Geist",var(--display);font-weight:500;font-size:37px;letter-spacing:-.035em;background:linear-gradient(180deg,#FFFFFF 0%,#F1EDFF 40%,#B9A8FF 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 4px rgba(0,0,0,.5))}
+.onb-demo{border-radius:24px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.onb-type{font-size:17px;font-weight:500}
+.onb-slide .chip{opacity:0;animation:none}
+.onb-slide.on .chip{animation:onbchip .45s var(--spring) both;animation-delay:calc(.55s + var(--i,0) * .13s)}
+@keyframes onbchip{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:none}}
+html.calm .onb-slide .chip{opacity:1}
+@media (prefers-reduced-motion: reduce){.onb-slide .chip{opacity:1}}
+.onb-feat{display:flex;flex-direction:column;gap:16px}
+.onb-feat>div{display:flex;gap:14px;align-items:flex-start}
+.onb-feat b{display:block;font-weight:600;font-size:16.5px}
+.onb-feat span span,.onb-feat>div>span:last-child{color:var(--muted);font-size:15px;line-height:1.45}
+.onb-feat b{color:var(--ink)}
+.onb-choice{display:flex;flex-direction:column;gap:12px}
+.onb-opt{border-radius:24px;padding:18px;text-align:left;display:flex;flex-direction:column;gap:4px;width:100%}
+.onb-opt b{font-size:17.5px;font-weight:600}
+.onb-opt span{color:var(--muted);font-size:14.5px;line-height:1.45}
+.onb-opt.primary{border:1.5px solid var(--accent);box-shadow:var(--glass-shadow),0 0 0 4px var(--accent-soft)}
+.onb-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-inline:20px;min-height:48px}
+.onb-dots{display:flex;gap:6px}
+.onb-dots i{width:7px;height:7px;border-radius:99px;background:var(--faint);opacity:.45;transition:width .45s var(--spring),opacity .3s,background .3s}
+.onb-dots i.on{width:22px;opacity:1;background:var(--accent)}
+
+/* motion */
+@keyframes rise{from{opacity:0;transform:translateY(16px) scale(.985)}}
+@keyframes fadein{from{opacity:0}}
+@keyframes fadeout{to{opacity:0}}
+@keyframes sheetin{from{transform:translateY(105%)}}
+@keyframes sheetout{to{transform:translateY(110%)}}
+@keyframes edin{from{transform:translateX(40px);opacity:0}}
+@keyframes edout{to{transform:translateX(40px);opacity:0}}
+@keyframes drift{0%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(3%,-2%,0) scale(1.06)}100%{transform:translate3d(-2%,3%,0) scale(1)}}
+@media (prefers-reduced-motion: no-preference){
+  .ambient{animation:drift 38s ease-in-out infinite alternate}
+  main.enter .stack>*{animation:rise .7s var(--ease) both;animation-delay:calc(var(--i,0)*55ms)}
+  .scrim.enter{animation:fadein .3s ease both}
+  .scrim.enter .sheet{animation:sheetin .6s var(--ease) both}
+  .scrim.closing{animation:fadeout .28s ease forwards}
+  .scrim.closing .sheet{animation:sheetout .3s cubic-bezier(.4,0,1,1) forwards}
+  .editor.enter{animation:fadein .35s ease both}
+  .editor.enter .in{animation:edin .5s var(--ease) both}
+  .editor.closing{animation:fadeout .26s ease forwards}
+  .editor.closing .in{animation:edout .26s ease forwards}
+  .nb{animation:nbin .6s var(--spring) both}
+  .nb.out{animation:nbout .34s var(--ease) forwards}
+  .onb.enter{animation:fadein .5s ease both}
+  .onb.closing{animation:fadeout .34s ease forwards}
+}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="ambient" aria-hidden="true"></div>
+<div class="app">
+  <main id="view" aria-live="polite"></main>
+</div>
+<div class="dock" id="dock"></div>
+<div id="layer"></div>
+<div id="notifs"></div>
+<div id="onb"></div>
+<div class="toast glass" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+const MQ_RM=!!(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches);
+const RM=()=>MQ_RM||!!(S&&S.settings&&S.settings.reduceMotion);
+/* ---------- icone ---------- */
+const IC={
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/>',
+  folder:'<path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/>',
+  note:'<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>',
+  task:'<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.5L16 9.5"/>',
+  cal:'<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  spark:'<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>',
+  timer:'<circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V10M10 2.5h4"/>',
+  chevL:'<path d="M15 5l-7 7 7 7"/>',
+  chevR:'<path d="M9 5l7 7-7 7"/>',
+  search:'<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/>',
+  x:'<path d="M7 7l10 10M17 7L7 17"/>',
+  pin:'<path d="M9 3h6l-1 6 4 4H6l4-4z"/><path d="M12 13v8"/>',
+  trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+  eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  pen:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'
+};
+const MINI_LOGO='<img src="icons/icon-192.png" alt="">';
+const I=(n,s=20)=>`<svg viewBox="0 0 24 24" width="${s}" height="${s}" class="ic" aria-hidden="true">${IC[n]}</svg>`;
+const CHECK='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12.5l3.8 3.8L18 8"/></svg>';
+
+/* ---------- utilità date ---------- */
+const pad=n=>String(n).padStart(2,"0");
+const iso=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const fromIso=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const today0=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+const T=()=>iso(today0());
+const nowHM=()=>{const d=new Date();return pad(d.getHours())+":"+pad(d.getMinutes())};
+const DOW=["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"];
+const DOWS=["dom","lun","mar","mer","gio","ven","sab"];
+const MON=["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
+const MONS=["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
+const cap1=s=>s?s[0].toUpperCase()+s.slice(1):s;
+function dayLabel(s){
+  if(!s) return "";
+  const diff=Math.round((fromIso(s)-today0())/864e5);
+  if(diff===0) return "oggi"; if(diff===1) return "domani"; if(diff===-1) return "ieri";
+  const d=fromIso(s); return `${DOWS[d.getDay()]} ${d.getDate()} ${MONS[d.getMonth()]}`;
+}
+function isoWeek(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const n=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-n);const y=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-y)/864e5+1)/7)}
+const uid=()=>Math.random().toString(36).slice(2,9);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ISO_RE=/^\d{4}-\d{2}-\d{2}$/, TIME_RE=/^\d{2}:\d{2}$/;
+
+/* ---------- linguaggio naturale ---------- */
+function parse(raw){
+  let t=" "+raw.replace(/^\s*\[\s?\]\s*/,"")+" ";
+  let due=null,time=null,prio=4,project=null;const tags=[];
+  const td=today0();
+  const take=(re,fn)=>{const m=t.match(re);if(m){fn(m);t=t.replace(m[0]," ");}};
+  let prioSet=false;
+  take(/\s!([1-4])(?=\s)/,m=>{prio=+m[1];prioSet=true});
+  take(/\s@([\p{L}\d_-]+)(?=\s)/u,m=>project=m[1]);
+  t=t.replace(/\s#([\p{L}\d_-]+)/gu,(m,g)=>{tags.push(g.toLowerCase());return " "});
+  take(/\s(?:alle|ore|h)\s?(\d{1,2})(?:[:.](\d{2}))?(?=\s)/i,m=>{const h=+m[1];if(h<24)time=pad(h)+":"+(m[2]||"00")});
+  take(/\s(?:tra|fra)\s(\d{1,2})\sgiorni(?=\s)/i,m=>due=iso(addDays(td,+m[1])));
+  take(/\sdopodomani(?=\s)/i,()=>due=iso(addDays(td,2)));
+  take(/\sdomani(?=\s)/i,()=>due=iso(addDays(td,1)));
+  take(/\soggi(?=\s)/i,()=>due=iso(td));
+  take(/\s(?:il\s)?(\d{1,2})[\/.](\d{1,2})(?:[\/.](\d{2,4}))?(?=\s)/,m=>{let y=m[3]?+m[3]:td.getFullYear();if(y<100)y+=2000;const d=new Date(y,+m[2]-1,+m[1]);if(!m[3]&&d<td)d.setFullYear(y+1);due=iso(d)});
+  take(/\s(?:(?:luned|marted|mercoled|gioved|venerd)[iì]|sabato|domenica)(?=\s)/i,m=>{
+    const w=m[0].trim().toLowerCase().replace("ì","i");
+    const idx=["domenica","lunedi","martedi","mercoledi","giovedi","venerdi","sabato"].indexOf(w);
+    let diff=(idx-td.getDay()+7)%7;if(diff===0)diff=7;due=iso(addDays(td,diff));
+  });
+  if(time&&!due) due=iso(td);
+  let title=t.replace(/\s+/g," ").trim().replace(/\s(il|per|entro|di|da)$/i,"").trim();
+  title=cap1(title||raw.trim());
+  return {title,due,time,prio,tags,project,prioSet};
+}
+const EVENT_WORDS=/\b(riunione|appuntamento|incontro|call|meeting|cena|pranzo|visita|evento|colloquio|dentista|medico)\b/i;
+function guessKind(raw,p){
+  if(/^\s*\[\s?\]/.test(raw)) return "task";
+  if(p.due&&EVENT_WORDS.test(raw)) return "event";
+  if(p.due) return "task";
+  return "note";
+}
+
+/* ---------- stato ---------- */
+const KEY="nodo-v1";
+const DEF_SETTINGS={theme:"system",accent:"indigo",reduceMotion:false,reduceGlass:false,
+  showWidgets:true,showAgenda:true,showTasks:true,showNotes:true,
+  defPrio:4,defProject:"",rollover:false,weekStart:1,
+  focusWork:25,focusBreak:5,autoBreak:true,
+  notifTasks:true,taskLead:0,notifEvents:true,eventLead:15,morning:true,morningAt:"08:00",quietOn:false,quietFrom:"22:00",quietTo:"07:00",sound:true,
+  aiDetail:"normal",aiNote:true,aiProvider:"anthropic",aiKey:"",aiModel:""};
+function ensureSettings(){
+  S.settings={...DEF_SETTINGS,...(S.settings||{})};
+  if(S.settings.accent==="teal"&&!S.settings.accentPicked)S.settings.accent="indigo";
+  if(S.settings.defProject&&!S.projects.some(p=>p.id===S.settings.defProject))S.settings.defProject="";
+  S.notified=S.notified||{};
+}
+let S=null;
+function load(){try{const r=localStorage.getItem(KEY);if(r)return JSON.parse(r)}catch(e){}return null}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function seed(){
+  const d=n=>iso(addDays(today0(),n)), now=Date.now();
+  const pN={id:uid(),name:"Nodo",color:1}, pL={id:uid(),name:"Lavoro",color:5}, pC={id:uid(),name:"Casa",color:3};
+  const n1={id:uid(),title:"Progetto Nodo",pinned:true,updated:now,projectId:pN.id,
+    body:"Un'app che unisce note, attività e calendario. Appunti dalla [[Riunione di lancio]].\n\n## Da decidere\n- [ ] Definire le funzioni MVP venerdì !1\n- [ ] Scegliere tra React Native e Flutter\n\n#idee"};
+  const n2={id:uid(),title:"Riunione di lancio",pinned:false,updated:now-36e5,projectId:pN.id,
+    body:"Partecipanti: Marco, Giulia\n\n## Decisioni\n- Prima versione solo mobile\n- Test con un gruppo di utenti\n\n- [ ] Inviare riepilogo a Giulia domani alle 10\n\nVedi anche [[Progetto Nodo]] e [[Elenco fornitori]]."};
+  const n3={id:uid(),title:"Libri da leggere",pinned:false,updated:now-864e5,projectId:null,
+    body:"- Il nome della rosa\n- Le città invisibili\n- Il Gattopardo\n\n#personale"};
+  S={seeded:true,projects:[pN,pL,pC],notes:[n1,n2,n3],tasks:[
+      {id:uid(),title:"Chiamare il commercialista",due:d(0),time:"11:00",prio:1,done:false,projectId:pL.id},
+      {id:uid(),title:"Preparare il report trimestrale",due:d(4),time:null,prio:2,done:false,projectId:pL.id},
+      {id:uid(),title:"Rinnovare abbonamento palestra",due:d(-1),time:null,prio:2,done:false,projectId:pC.id},
+      {id:uid(),title:"Comprare regalo per Anna",due:d(3),time:null,prio:3,done:false,projectId:null},
+      {id:uid(),title:"Prenotare l'idraulico",due:null,time:null,prio:4,done:true,projectId:pC.id}],
+    events:[
+      {id:uid(),title:"Stand-up del team",date:d(0),time:"09:30",noteId:null,projectId:pL.id},
+      {id:uid(),title:"Riunione di progetto",date:d(0),time:"15:00",noteId:n2.id,projectId:pN.id},
+      {id:uid(),title:"Cena con amici",date:d(2),time:"20:30",noteId:null,projectId:null},
+      {id:uid(),title:"Revisione budget",date:d(5),time:"09:30",noteId:null,projectId:pL.id}],
+    focus:{count:0,countDate:T()}};
+  S.notes.forEach(syncNoteTasks);
+}
+
+/* ---------- progetti ---------- */
+const proj=id=>id?S.projects.find(p=>p.id===id):null;
+function projectByName(name,create){
+  const p=S.projects.find(p=>p.name.toLowerCase()===String(name).trim().toLowerCase());
+  if(p||!create) return p||null;
+  const used=S.projects.map(p=>p.color);let c=(S.projects.length%6)+1;for(let i=1;i<=6;i++){if(!used.includes(i)){c=i;break}}
+  const np={id:uid(),name:cap1(String(name).trim()),color:c};S.projects.push(np);return np;
+}
+const pjChip=p=>p?`<span class="pj"><i style="background:var(--c${p.color})"></i>${esc(p.name)}</span>`:"";
+const projOptions=sel=>`<option value="">Nessun progetto</option>${S.projects.map(p=>`<option value="${p.id}" ${sel===p.id?"selected":""}>${esc(p.name)}</option>`).join("")}`;
+
+/* ---------- note ↔ attività ---------- */
+const TASKLINE=/^\s*[-*]?\s*\[( |x)\]\s+(.+)$/i;
+function syncNoteTasks(note){
+  note.body.split("\n").forEach(line=>{
+    const m=line.match(TASKLINE);if(!m)return;
+    const src=m[2].trim();
+    if(S.tasks.some(t=>t.noteId===note.id&&t.src===src))return;
+    const p=parse(src);
+    const pr=p.project?projectByName(p.project,true).id:(note.projectId||null);
+    S.tasks.push({id:uid(),title:p.title,due:p.due,time:p.time,prio:p.prio,done:m[1].toLowerCase()==="x",noteId:note.id,src,projectId:pr});
+  });
+}
+function setNoteLine(task){
+  const n=S.notes.find(x=>x.id===task.noteId);if(!n)return;
+  n.body=n.body.split("\n").map(l=>{const m=l.match(TASKLINE);if(m&&m[2].trim()===task.src)return l.replace(/\[( |x)\]/i,task.done?"[x]":"[ ]");return l}).join("\n");
+}
+const noteByTitle=t=>S.notes.find(n=>n.title.trim().toLowerCase()===t.trim().toLowerCase());
+function tagsOf(n){return [...new Set((n.body.match(/(?:^|\s)#([\p{L}\d_-]+)/gu)||[]).map(x=>x.trim().slice(1).toLowerCase()))]}
+function excerpt(n){return n.body.replace(/\[\[([^\]]+)\]\]/g,"$1").replace(/(^|\s)#[\p{L}\d_-]+/gu,"").replace(/^\s*[-*]?\s*\[( |x)\]\s*/gim,"").replace(/^#+\s*/gm,"").replace(/^\s*-\s*/gm,"").replace(/\s+/g," ").trim()}
+
+/* ---------- stato UI ---------- */
+let tab="oggi", taskFilter="oggi", noteQuery="", noteTag=null, calMonth=null, calSel=null;
+let curProj=null, projEdit=null;
+let editor=null;  // {id, mode, confirmDel, _in}
+let capture=null; // {kind, manual, date, projectId, _in}
+let assist=null;  // {text, projectId, status, result, msg, ctl, _in}
+let swReg=null;
+const TABS=[["oggi","Oggi","sun"],["prog","Progetti","folder"],["note","Note","note"],["task","Attività","task"],["cal","Calendario","cal"]];
+const TAB_IDX={oggi:0,prog:1,proj:1,note:2,task:3,cal:4};
+
+/* ---------- componenti ---------- */
+function taskRow(x,opts={}){
+  const late=x.due&&x.due<T()&&!x.done;
+  const note=x.noteId&&S.notes.find(n=>n.id===x.noteId);
+  const meta=[];
+  if(x.due&&!opts.noDate) meta.push(`<span class="${late?"late":""}">${late?"In ritardo · ":""}${cap1(dayLabel(x.due))}</span>`);
+  if(x.time) meta.push(`<span class="num">${x.time}</span>`);
+  if(!opts.noProj&&proj(x.projectId)) meta.push(pjChip(proj(x.projectId)));
+  if(note) meta.push(`<button class="chiplink" data-act="opennote" data-id="${note.id}">↳ ${esc(note.title)}</button>`);
+  return `<div class="row p${x.prio} ${x.done?"done":""}">
+    <button class="check" data-act="toggle" data-id="${x.id}" aria-label="${x.done?"Segna da fare":"Segna completata"}: ${esc(x.title)}">${CHECK}</button>
+    <div class="main"><span class="ttl">${esc(x.title)}</span>${meta.length?`<span class="meta">${meta.join("")}</span>`:""}</div>
+    <button class="x" data-act="deltask" data-id="${x.id}" aria-label="Elimina attività">${I("x",16)}</button></div>`;
+}
+function eventRow(e,opts={}){
+  const note=e.noteId&&S.notes.find(n=>n.id===e.noteId);
+  return `<div class="row ev"><span class="time">${e.time||"—"}</span><span class="rail"><i></i></span>
+    <div class="main"><span class="ttl">${esc(e.title)}</span><span class="meta">${opts.withDate?`<span>${cap1(dayLabel(e.date))}</span>`:""}
+    ${!opts.noProj&&proj(e.projectId)?pjChip(proj(e.projectId)):""}
+    <button class="chiplink" data-act="eventnote" data-id="${e.id}">${note?"↳ "+esc(note.title):"+ Nota della riunione"}</button></span></div>
+    <button class="x" data-act="delevent" data-id="${e.id}" aria-label="Elimina evento">${I("x",16)}</button></div>`;
+}
+const nowRow=()=>`<div class="row now"><span class="time">${nowHM()}</span><span class="rail"><i></i></span><div class="main"><span class="ttl">Adesso</span></div><span></span></div>`;
+function noteCard(n,opts={}){
+  const tg=tagsOf(n), p=!opts.noProj&&proj(n.projectId);
+  return `<button class="card glass" data-act="opennote" data-id="${n.id}"><span class="top"><strong>${esc(n.title||"Senza titolo")}</strong>${n.pinned?'<span class="pin">Fissata</span>':""}</span>
+    <span class="ex">${esc(excerpt(n))||"Nota vuota"}</span>${tg.length||p?`<span class="tags">${p?pjChip(p):""}${tg.map(t=>`<span class="tag">#${esc(t)}</span>`).join("")}</span>`:""}</button>`;
+}
+function ring(pct,color,size=48,sw=5,label){
+  const r=(size-sw)/2,C=2*Math.PI*r,c=size/2;
+  return `<svg class="ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true"><circle class="trk" cx="${c}" cy="${c}" r="${r}" fill="none" stroke-width="${sw}"></circle>
+   <circle class="fg" cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${C.toFixed(1)}" data-to="${(C*(1-Math.min(1,pct))).toFixed(1)}" transform="rotate(-90 ${c} ${c})"></circle>
+   ${label?`<text x="${c}" y="${c+4}" text-anchor="middle">${label}</text>`:""}</svg>`;
+}
+const bar=(pct,color)=>`<span class="bar"><i style="background:${color}" data-w="${Math.min(100,pct)}"></i></span>`;
+const byTime=(a,b)=>(a.time||"").localeCompare(b.time||"");
+const byDue=(a,b)=>(a.due||"9999").localeCompare(b.due||"9999")||a.prio-b.prio||byTime(a,b);
+const byDate=(a,b)=>a.date.localeCompare(b.date)||byTime(a,b);
+
+/* ---------- viste ---------- */
+function vOggi(){
+  const t=T(), d=today0(), st=S.settings;
+  const evs=S.events.filter(e=>e.date===t).sort(byTime);
+  const tasks=S.tasks.filter(x=>!x.done&&x.due&&x.due<=t).sort(byDue);
+  const late=tasks.filter(x=>x.due<t).length;
+  const notes=[...S.notes].sort((a,b)=>(b.pinned-a.pinned)||(b.updated-a.updated)).slice(0,3);
+  const next=S.events.filter(e=>e.date>t).sort(byDate)[0];
+  let agenda="";
+  if(evs.length){const h=nowHM();let placed=false;
+    evs.forEach(e=>{if(!placed&&e.time&&e.time>h){agenda+=nowRow();placed=true}agenda+=eventRow(e)});
+    if(!placed)agenda+=nowRow();
+  }else agenda=`<div class="empty">Nessun evento oggi.${next?` Il prossimo: ${esc(next.title)}, ${dayLabel(next.date)}${next.time?" alle "+next.time:""}.`:""}</div>`;
+  return `<div class="stack">
+   <header style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div class="hd"><span class="kick">Settimana ${isoWeek(d)}</span><h1 class="lt">${cap1(DOW[d.getDay()])}</h1><span class="sub">${d.getDate()} ${MON[d.getMonth()]}</span></div><button class="gear glass" data-act="tab" data-tab="settings" aria-label="Impostazioni">${I("gear",22)}</button></header>
+   ${st.showWidgets?`<div class="widgets">
+    <div class="wd glass"><b class="num" data-count="${evs.length}">${evs.length}</b><span>${evs.length===1?"evento":"eventi"}</span></div>
+    <div class="wd glass"><b class="num" data-count="${tasks.length}">${tasks.length}</b><span>da fare</span></div>
+    <div class="wd glass ${late?"warn":""}"><b class="num" data-count="${late}">${late}</b><span>in ritardo</span></div></div>`:""}
+   <div class="quick"><button class="qt ai" data-act="assist"><span class="qi">${I("spark",20)}</span><span><b>Assistente</b><em>Scomponi un impegno lungo</em></span></button>
+    <button class="qt glass" data-act="tab" data-tab="focus"><span class="qi">${I("timer",20)}</span><span><b>Focus</b><em>25 minuti, poi 5 di pausa</em></span></button></div>
+   ${S.seeded?`<div class="banner glass"><span>Stai vedendo dati di esempio.</span><button class="link" data-act="clearseed">Svuota tutto</button></div>`:""}
+   ${st.showAgenda?`<section class="sec"><div class="sechead"><h2>Agenda</h2><button class="link" data-act="tab" data-tab="cal">Calendario</button></div>
+    <div class="list glass tline">${agenda}</div></section>`:""}
+   ${st.showTasks?`<section class="sec"><div class="sechead"><h2>Da fare</h2><button class="link" data-act="tab" data-tab="task">Tutte</button></div>
+    <div class="list glass">${tasks.map(x=>taskRow(x)).join("")||`<div class="empty">Niente in scadenza oggi.</div>`}</div></section>`:""}
+   ${st.showNotes?`<section class="sec"><div class="sechead"><h2>Note recenti</h2><button class="link" data-act="newnote">Nuova</button></div>
+    <div class="cards">${notes.map(n=>noteCard(n)).join("")||`<div class="list glass"><div class="empty">Ancora nessuna nota.</div></div>`}</div></section>`:""}
+  </div>`;
+}
+function projStats(p){
+  const ts=S.tasks.filter(x=>x.projectId===p.id), open=ts.filter(x=>!x.done);
+  const next=S.events.filter(e=>e.projectId===p.id&&e.date>=T()).sort(byDate)[0];
+  return {total:ts.length,open:open.length,done:ts.length-open.length,notes:S.notes.filter(n=>n.projectId===p.id).length,next,late:open.filter(x=>x.due&&x.due<T()).length};
+}
+function vProg(){
+  const cards=S.projects.map(p=>{const s=projStats(p);const pct=s.total?s.done/s.total:0;
+    return `<button class="card glass pcard" style="--pc:var(--c${p.color})" data-act="openproj" data-id="${p.id}">${ring(pct,`var(--c${p.color})`,52,5,Math.round(pct*100)+"%")}
+     <span class="pm"><span class="pn">${esc(p.name)}</span>
+     <span class="meta"><span>${s.open} da fare</span><span>${s.notes} ${s.notes===1?"nota":"note"}</span>${s.late?`<span class="late">${s.late} in ritardo</span>`:""}</span>
+     ${s.next?`<span class="meta"><span>Prossimo: ${esc(s.next.title)}, ${dayLabel(s.next.date)}</span></span>`:""}</span><span class="muted">${I("chevR",18)}</span></button>`}).join("");
+  const loose=S.tasks.filter(x=>!x.done&&!x.projectId).length+S.notes.filter(n=>!n.projectId).length;
+  return `<div class="stack"><header class="hd"><h1 class="lt">Progetti</h1></header>
+   <form class="inrow glass" data-form="newproj">${I("plus",18)}<input id="np" placeholder="Nuovo progetto, es. Ristrutturazione" aria-label="Nome del nuovo progetto" autocomplete="off"><button class="btn sm">Crea</button></form>
+   <div class="cards">${cards||'<div class="list glass"><div class="empty">Nessun progetto. Creane uno qui sopra, oppure scrivi @NomeProgetto quando aggiungi qualcosa.</div></div>'}</div>
+   ${loose?`<p class="hint">${loose} elementi non hanno un progetto. Apri una nota e scegli il progetto, oppure scrivi <b>@Nome</b> quando aggiungi un'attività.</p>`:""}</div>`;
+}
+function vProj(){
+  const p=proj(curProj);if(!p){tab="prog";return vProg()}
+  const s=projStats(p), pct=s.total?s.done/s.total:0;
+  const open=S.tasks.filter(x=>x.projectId===p.id&&!x.done).sort(byDue), done=S.tasks.filter(x=>x.projectId===p.id&&x.done);
+  const evs=S.events.filter(e=>e.projectId===p.id&&e.date>=T()).sort(byDate);
+  const notes=S.notes.filter(n=>n.projectId===p.id).sort((a,b)=>(b.pinned-a.pinned)||(b.updated-a.updated));
+  return `<div class="stack"><button class="back glass" data-act="tab" data-tab="prog">${I("chevL",18)}Progetti</button>
+   <header class="card glass pcard" style="--pc:var(--c${p.color});cursor:default">${ring(pct,`var(--c${p.color})`,72,7,Math.round(pct*100)+"%")}
+    <span class="pm">${projEdit==="rename"?`<form class="inrow" data-form="renameproj" style="padding:0;border-radius:12px"><input id="rp" value="${esc(p.name)}" aria-label="Nome del progetto"><button class="btn sm">Salva</button></form>`
+      :`<h1 class="lt" style="font-size:30px">${esc(p.name)}</h1>`}
+    <span class="meta"><span>${s.open} da fare · ${s.done} completate</span><span>${s.notes} ${s.notes===1?"nota":"note"}</span></span></span></header>
+   <div class="actions"><button class="btn sm" data-act="capture" data-kind="task" data-proj="${p.id}">${I("plus",16)}Attività</button><button class="btn sm ghost" data-act="capture" data-kind="event" data-proj="${p.id}">Evento</button><button class="btn sm ghost" data-act="newnote" data-proj="${p.id}">Nota</button><button class="btn sm ghost" data-act="assist" data-proj="${p.id}">${I("spark",16)}Assistente</button></div>
+   <section class="sec"><div class="sechead"><h2>Attività</h2></div><div class="list glass">${open.map(x=>taskRow(x,{noProj:true})).join("")||'<div class="empty">Nessuna attività aperta.</div>'}</div>
+    ${done.length?`<details><summary class="hint" style="cursor:pointer;padding-top:4px">${done.length} completate</summary><div class="list glass" style="margin-top:8px">${done.map(x=>taskRow(x,{noProj:true})).join("")}</div></details>`:""}</section>
+   <section class="sec"><div class="sechead"><h2>Prossimi eventi</h2></div><div class="list glass tline">${evs.map(e=>eventRow(e,{withDate:true,noProj:true})).join("")||'<div class="empty">Nessun evento in programma.</div>'}</div></section>
+   <section class="sec"><div class="sechead"><h2>Note</h2></div><div class="cards">${notes.map(n=>noteCard(n,{noProj:true})).join("")||'<div class="list glass"><div class="empty">Nessuna nota in questo progetto.</div></div>'}</div></section>
+   <div class="actions">${projEdit==="delete"?`<span class="hint" style="flex-basis:100%">Eliminare il progetto? Attività e note restano, senza progetto.</span><button class="btn sm danger" data-act="delproj">Elimina</button><button class="btn sm ghost" data-act="projedit" data-v="">Annulla</button>`
+     :`<button class="btn sm ghost" data-act="projedit" data-v="rename">Rinomina</button><button class="btn sm ghost" data-act="projedit" data-v="delete" style="color:var(--red)">Elimina progetto</button>`}</div></div>`;
+}
+function noteListHTML(){
+  const q=noteQuery.trim().toLowerCase();
+  const list=S.notes.filter(n=>(!q||(n.title+" "+n.body).toLowerCase().includes(q))&&(!noteTag||tagsOf(n).includes(noteTag)))
+    .sort((a,b)=>(b.pinned-a.pinned)||(b.updated-a.updated));
+  return list.map(n=>noteCard(n)).join("")||`<div class="list glass"><div class="empty">Nessuna nota trovata.</div></div>`;
+}
+function vNote(){
+  const tags=[...new Set(S.notes.flatMap(tagsOf))].sort();
+  return `<div class="stack"><header class="hd" style="flex-direction:row;justify-content:space-between;align-items:flex-end"><h1 class="lt">Note</h1><button class="btn sm" data-act="newnote">${I("plus",16)}Nuova</button></header>
+   <label class="inrow glass" style="padding-right:16px">${I("search",18)}<input id="q" type="search" placeholder="Cerca nelle note" value="${esc(noteQuery)}" aria-label="Cerca nelle note"></label>
+   ${tags.length?`<div class="filters">${tags.map(t=>`<button class="fbtn glass" data-act="tagfilter" data-tag="${esc(t)}" aria-pressed="${noteTag===t}">#${esc(t)}</button>`).join("")}</div>`:""}
+   <div class="cards" id="nlist">${noteListHTML()}</div>
+   <p class="hint">Scrivi <b>[[Titolo]]</b> per collegare due note e <b>- [ ] cosa fare domani</b> per creare un'attività collegata.</p></div>`;
+}
+const TF=[["oggi","Oggi"],["sett","7 giorni"],["tutte","Tutte"],["fatte","Fatte"]];
+function taskBody(){
+  const t=T(), w=iso(addDays(today0(),7));
+  const open=S.tasks.filter(x=>!x.done);
+  if(taskFilter==="fatte"){const items=S.tasks.filter(x=>x.done);return items.length?`<div class="list glass">${items.map(x=>taskRow(x)).join("")}</div>`:`<div class="list glass"><div class="empty">Nessuna attività completata.</div></div>`}
+  const items=(taskFilter==="oggi"?open.filter(x=>x.due&&x.due<=t):taskFilter==="sett"?open.filter(x=>x.due&&x.due<=w):open).sort(byDue);
+  const groups=[];
+  items.forEach(x=>{const k=!x.due?"Senza data":x.due<t?"In ritardo":dayLabel(x.due);let g=groups.find(g=>g.k===k);if(!g)groups.push(g={k,a:[]});g.a.push(x)});
+  return groups.map(g=>`<section class="sec"><div class="sechead"><h2 style="font-size:17px${g.k==="In ritardo"?";color:var(--red)":""}">${esc(cap1(g.k))}</h2></div><div class="list glass">${g.a.map(x=>taskRow(x,{noDate:g.k!=="In ritardo"&&g.k!=="Senza data"})).join("")}</div></section>`).join("")
+    ||`<div class="list glass"><div class="empty">Niente da fare qui.</div></div>`;
+}
+function vTask(){
+  const si=TF.findIndex(f=>f[0]===taskFilter);
+  return `<div class="stack"><header class="hd"><h1 class="lt">Attività</h1></header>
+   <form class="inrow glass" data-form="quicktask">${I("plus",18)}<input id="qt" placeholder="Chiamare Marco domani alle 15 !1 @Lavoro" aria-label="Nuova attività" autocomplete="off"><button class="btn sm">Aggiungi</button></form>
+   <div class="seg" id="tseg" style="--n:4;--si:${si}"><span class="thumb"></span>${TF.map(([k,l])=>`<button data-act="tfilter" data-f="${k}" aria-pressed="${taskFilter===k}">${l}</button>`).join("")}</div>
+   <div class="stack" id="tbody" style="gap:18px">${taskBody()}</div>
+   <p class="hint">Priorità <b>!1</b> alta … <b>!4</b> nessuna · progetto <b>@Nome</b> · date: oggi, domani, venerdì, tra 3 giorni, 20/10.</p></div>`;
+}
+function vCal(){
+  const t=T(); if(!calMonth){const d=today0();calMonth=new Date(d.getFullYear(),d.getMonth(),1)} if(!calSel) calSel=t;
+  const ws=+S.settings.weekStart, first=calMonth, start=addDays(first,-((first.getDay()-ws+7)%7));
+  const cells=[];for(let i=0;i<42;i++)cells.push(addDays(start,i));
+  const weeks=cells[35].getMonth()!==first.getMonth()?35:42;
+  const dayCells=cells.slice(0,weeks).map(d=>{const s=iso(d);const ne=S.events.filter(e=>e.date===s).length,nt=S.tasks.filter(x=>x.due===s&&!x.done).length;
+    const cls=["day",d.getMonth()!==first.getMonth()?"out":"",s===t?"today":"",s===calSel?"sel":""].join(" ");
+    return `<button class="${cls}" data-act="selday" data-d="${s}" aria-label="${d.getDate()} ${MON[d.getMonth()]}${ne?", "+ne+" eventi":""}${nt?", "+nt+" attività":""}" ${s===calSel?'aria-current="date"':""}><span>${d.getDate()}</span><span class="dots">${ne?'<i class="dot"></i>':""}${nt?'<i class="dot t"></i>':""}</span></button>`}).join("");
+  const evs=S.events.filter(e=>e.date===calSel).sort(byTime), ts=S.tasks.filter(x=>x.due===calSel).sort(byDue);
+  return `<div class="stack"><header class="hd"><span class="kick">${first.getFullYear()}</span><h1 class="lt">${cap1(MON[first.getMonth()])}</h1></header>
+   <div class="calp glass"><div class="calhead"><button class="btn round ghost" data-act="mon" data-n="-1" aria-label="Mese precedente">${I("chevL",18)}</button>
+    <button class="link" data-act="caltoday">Oggi</button>
+    <button class="btn round ghost" data-act="mon" data-n="1" aria-label="Mese successivo">${I("chevR",18)}</button></div>
+   <div class="grid">${(ws===1?["L","M","M","G","V","S","D"]:["D","L","M","M","G","V","S"]).map(x=>`<span class="dow">${x}</span>`).join("")}${dayCells}</div></div>
+   <section class="sec" id="calday"><div class="sechead"><h2>${esc(cap1(dayLabel(calSel)))}</h2><button class="link" data-act="capture" data-kind="event" data-d="${calSel}">+ Evento</button></div>
+    <div class="list glass tline">${evs.map(e=>eventRow(e)).join("")}${ts.map(x=>taskRow(x,{noDate:true})).join("")}${!evs.length&&!ts.length?'<div class="empty">Giornata libera.</div>':""}</div></section></div>`;
+}
+/* focus */
+const F={get work(){return ((S&&S.settings&&S.settings.focusWork)||25)*60},get brk(){return ((S&&S.settings&&S.settings.focusBreak)||5)*60}};
+let FS={mode:"work",remaining:F.work,running:false,endAt:0,taskId:""};
+let timer=null;
+function vFocus(){
+  if(S.focus.countDate!==T()){S.focus={count:0,countDate:T()};save()}
+  const open=S.tasks.filter(x=>!x.done).sort(byDue);
+  const L=2*Math.PI*120;
+  return `<div class="stack"><button class="back glass" data-act="tab" data-tab="oggi">${I("chevL",18)}Oggi</button><header class="hd"><h1 class="lt">Focus</h1></header><div class="focus">
+   <div class="fdisc glass ${FS.running?"run":""}" id="fdisc"><svg viewBox="0 0 260 260" aria-hidden="true"><circle cx="130" cy="130" r="120" fill="none" stroke="var(--line)" stroke-width="8"></circle>
+    <circle class="fg" id="fring" cx="130" cy="130" r="120" fill="none" stroke="${FS.mode==="work"?"var(--accent)":"var(--amber)"}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${L.toFixed(1)}"></circle></svg>
+    <div class="fnum"><span class="kick">${FS.mode==="work"?`Concentrazione · ${S.settings.focusWork} min`:`Pausa · ${S.settings.focusBreak} min`}</span><span class="clock" id="fclock"></span></div></div>
+   <div class="row-btns"><button class="btn" data-act="fgo" style="min-width:120px">${FS.running?"Pausa":"Avvia"}</button><button class="btn ghost" data-act="freset">Reimposta</button><button class="btn ghost" data-act="fskip">${FS.mode==="work"?"Vai alla pausa":"Salta pausa"}</button></div>
+   <label class="field">Su cosa stai lavorando
+    <select class="sel" id="ftask"><option value="">Nessuna attività</option>${open.map(x=>`<option value="${x.id}" ${FS.taskId===x.id?"selected":""}>${esc(x.title)}</option>`).join("")}</select></label>
+   <div class="banner glass" style="justify-content:center">Pomodori completati oggi <b class="num" style="color:var(--ink)">${S.focus.count}</b></div></div></div>`;
+}
+function updFocus(){
+  const c=document.getElementById("fclock");if(!c)return;
+  const r=Math.max(0,Math.round(FS.remaining));c.textContent=`${pad(Math.floor(r/60))}:${pad(r%60)}`;
+  const tot=FS.mode==="work"?F.work:F.brk, L=2*Math.PI*120;
+  document.getElementById("fring").setAttribute("stroke-dashoffset",(L*(1-r/tot)).toFixed(1));
+}
+function tick(){
+  FS.remaining=(FS.endAt-Date.now())/1000;
+  if(FS.remaining<=0){
+    clearInterval(timer);timer=null;FS.running=false;
+    if(FS.mode==="work"){S.focus.count++;save();FS.mode="brk";FS.remaining=F.brk;
+      notify({title:"Pomodoro completato",body:S.settings.autoBreak?`Pausa di ${S.settings.focusBreak} minuti iniziata.`:`Ora una pausa di ${S.settings.focusBreak} minuti.`});
+      if(S.settings.autoBreak){FS.running=true;FS.endAt=Date.now()+F.brk*1000;timer=setInterval(tick,250)}}
+    else{notify({title:"Pausa finita",body:"Si riparte quando vuoi."});FS.mode="work";FS.remaining=F.work}
+    if(tab==="focus")render();return;
+  }
+  updFocus();
+}
+
+/* ---------- editor nota ---------- */
+function inline(s){
+  return s.replace(/\[\[([^\]]+)\]\]/g,(m,t)=>`<button class="wl ${noteByTitle(t)?"":"new"}" data-act="wikilink" data-title="${t}">${t}</button>`)
+          .replace(/(^|\s)#([\p{L}\d_-]+)/gu,'$1<span class="tag">#$2</span>')
+          .replace(/\*\*([^*]+)\*\*/g,"<b>$1</b>");
+}
+function renderBody(n){
+  return n.body.split("\n").map(line=>{
+    const m=line.match(TASKLINE);
+    if(m){const src=m[2].trim();const tk=S.tasks.find(t=>t.noteId===n.id&&t.src===src);const done=tk?tk.done:m[1]!==" ";
+      const p=parse(src);
+      return `<div class="tl ${done?"done":""} p${p.prio}"><button class="check" ${tk?`data-act="toggle" data-id="${tk.id}"`:""} aria-label="Attività: ${esc(p.title)}">${CHECK}</button><span>${inline(esc(p.title))}${p.due?` <span class="meta" style="display:inline">· ${dayLabel(p.due)}${p.time?" "+p.time:""}</span>`:""}</span></div>`}
+    if(/^##?\s/.test(line)) return `<h3>${inline(esc(line.replace(/^##?\s/,"")))}</h3>`;
+    if(/^\s*[-*]\s/.test(line)) return `<div class="li">${inline(esc(line.replace(/^\s*[-*]\s/,"")))}</div>`;
+    if(!line.trim()) return `<div style="height:4px"></div>`;
+    return `<p>${inline(esc(line))}</p>`;
+  }).join("");
+}
+function editorHTML(){
+  const n=S.notes.find(x=>x.id===editor.id);if(!n)return"";
+  const back=S.notes.filter(x=>x.id!==n.id&&n.title&&x.body.toLowerCase().includes("[["+n.title.toLowerCase()+"]]"));
+  const tks=S.tasks.filter(t=>t.noteId===n.id), evs=S.events.filter(e=>e.noteId===n.id);
+  const edit=editor.mode==="edit";
+  return `<div class="editor ${editor._in?"":"enter"}" role="dialog" aria-label="Nota"><div class="in">
+   <div class="edbar glass"><button class="ibtn" data-act="closenote" aria-label="Indietro">${I("chevL",20)}</button><span class="sp"></span>
+    <button class="ibtn" data-act="mode" aria-label="${edit?"Anteprima":"Modifica"}">${I(edit?"eye":"pen",19)}</button>
+    <button class="ibtn" data-act="pin" aria-pressed="${n.pinned}" aria-label="${n.pinned?"Togli dai fissati":"Fissa in alto"}">${I("pin",19)}</button>
+    ${editor.confirmDel?`<button class="btn sm danger" data-act="delnote">Elimina</button>`:`<button class="ibtn del" data-act="askdel" aria-label="Elimina nota">${I("trash",19)}</button>`}</div>
+   <div class="edbody">
+    <label class="lbl">Progetto <select class="sel" id="nproj">${projOptions(n.projectId)}</select></label>
+    ${edit?`<input class="title" id="nt" value="${esc(n.title)}" placeholder="Titolo" aria-label="Titolo"><textarea id="nb" placeholder="Scrivi… usa [[Titolo]] per collegare, - [ ] per un'attività, #tag" aria-label="Testo della nota">${esc(n.body)}</textarea>`
+      :`<h1 class="lt" style="font-size:32px">${esc(n.title||"Senza titolo")}</h1><div class="prose">${renderBody(n)||'<p class="hint">Nota vuota. Tocca la matita per scrivere.</p>'}</div>`}
+    ${(back.length||evs.length||tks.length)&&!edit?`<div class="backs glass"><span class="kick">Collegamenti</span>
+      ${evs.map(e=>`<span class="meta"><span>Evento: ${esc(e.title)} · ${dayLabel(e.date)} ${e.time||""}</span></span>`).join("")}
+      ${back.map(b=>`<button class="wl" data-act="opennote" data-id="${b.id}">← ${esc(b.title)}</button>`).join("")}
+      ${tks.length?`<span class="meta">${tks.filter(t=>!t.done).length} attività aperte da questa nota sono anche in Attività.</span>`:""}</div>`:""}
+   </div></div></div>`;
+}
+function commitEditor(){
+  if(!editor)return;const n=S.notes.find(x=>x.id===editor.id);if(!n)return;
+  const ti=document.getElementById("nt"),bo=document.getElementById("nb");
+  if(ti&&bo&&(ti.value!==n.title||bo.value!==n.body)){n.title=ti.value.trim();n.body=bo.value;n.updated=Date.now();syncNoteTasks(n);save()}
+}
+function openNote(id,mode){commitEditor();const was=!!editor;editor={id,mode:mode||"view",confirmDel:false,_in:false};if(was){editor._in=true}renderLayer()}
+function newNote(title,projectId){const n={id:uid(),title:title||"",body:"",pinned:false,updated:Date.now(),projectId:projectId||null};S.notes.push(n);save();openNote(n.id,"edit");setTimeout(()=>document.getElementById(title?"nb":"nt")?.focus(),60);return n}
+function closeEditor(){
+  commitEditor();
+  const el=document.querySelector("#layer .editor");
+  const done=()=>{editor=null;render()};
+  if(!el||RM()){done();return}
+  el.classList.remove("enter");el.classList.add("closing");setTimeout(done,250);
+}
+
+/* ---------- fogli ---------- */
+function closeSheet(kind,after){
+  const el=document.querySelector(`#layer .scrim[data-k="${kind}"]`);
+  const done=()=>{if(kind==="cap")capture=null;else{assist?.ctl?.abort();assist=null}renderLayer();after&&after()};
+  if(!el||RM()){done();return}
+  el.classList.remove("enter");el.classList.add("closing");setTimeout(done,290);
+}
+function captureHTML(){
+  const k=capture.kind, KINDS=[["note","Nota"],["task","Attività"],["event","Evento"]];
+  return `<div class="scrim ${capture._in?"":"enter"}" data-k="cap" data-act="closecap"><form class="sheet" data-form="capture" role="dialog" aria-label="Cattura rapida">
+   <span class="grab"></span>
+   <div class="shead"><h2>Nuovo</h2><button type="button" class="xbtn" data-act="closecap" aria-label="Chiudi">${I("x",16)}</button></div>
+   <textarea id="cap" placeholder="Scrivi come parli: «Riunione con Marco venerdì alle 10 @Lavoro»" aria-label="Testo"></textarea>
+   <div class="seg" id="kseg" style="--n:3;--si:${KINDS.findIndex(x=>x[0]===k)}" role="group" aria-label="Tipo"><span class="thumb"></span>${KINDS.map(([v,l])=>`<button type="button" data-act="kind" data-k="${v}" aria-pressed="${k===v}">${l}</button>`).join("")}</div>
+   <label class="lbl">Progetto <select class="sel" id="capproj">${projOptions(capture.projectId)}</select></label>
+   <div class="chips" id="capchips"></div>
+   <p class="hint">Prova: <button type="button" data-act="ex">Cena con Giulia sabato alle 20:30</button> · <button type="button" data-act="ex">Pagare F24 entro il 16/11 !1 @Casa</button></p>
+   <p class="hint">Impegno lungo o complicato? <button type="button" data-act="assist">Chiedi all'assistente</button></p>
+   <button class="btn">Aggiungi</button></form></div>`;
+}
+function setSeg(segId,kindAttr,val){
+  const seg=document.getElementById(segId);if(!seg)return;
+  const btns=[...seg.querySelectorAll("button")];const i=btns.findIndex(b=>b.dataset[kindAttr]===val);
+  seg.style.setProperty("--si",i);btns.forEach(b=>b.setAttribute("aria-pressed",b.dataset[kindAttr]===val));
+}
+let lastChips="";
+function capPreview(){
+  const el=document.getElementById("cap");if(!el)return;const raw=el.value;const p=parse(raw);
+  if(!capture.manual){capture.kind=raw.trim()?guessKind(raw,p):(capture.date?"event":"note");setSeg("kseg","k",capture.kind)}
+  const due=p.due||capture.date;const ch=[];
+  if(raw.trim()){
+    ch.push(`<span class="chip ${capture.kind==="event"?"e":""}">${{note:"Nota",task:"Attività",event:"Evento"}[capture.kind]}: ${esc(capture.kind==="note"?raw.trim().split("\n")[0]:p.title)}</span>`);
+    if(capture.kind!=="note"&&due) ch.push(`<span class="chip">${cap1(dayLabel(due))}</span>`);
+    if(capture.kind!=="note"&&p.time) ch.push(`<span class="chip">ore ${p.time}</span>`);
+    if(capture.kind==="task"&&p.prio<4) ch.push(`<span class="chip">priorità ${p.prio}</span>`);
+    if(p.project) ch.push(`<span class="chip">${projectByName(p.project)?"":"nuovo progetto "}@${esc(p.project)}</span>`);
+    p.tags.forEach(t=>ch.push(`<span class="tag">#${esc(t)}</span>`));
+  }
+  const html=ch.join("");
+  if(html!==lastChips){document.getElementById("capchips").innerHTML=html;lastChips=html}
+}
+function doCapture(){
+  const raw=document.getElementById("cap").value;if(!raw.trim())return;
+  const p=parse(raw),k=capture.kind;
+  const projectId=p.project?projectByName(p.project,true).id:(document.getElementById("capproj").value||null);
+  let msg;
+  if(k==="note"){const lines=raw.replace(/\s@[\p{L}\d_-]+/gu,"").trim().split("\n");S.notes.push({id:uid(),title:lines[0].slice(0,80),body:lines.slice(1).join("\n").trim(),pinned:false,updated:Date.now(),projectId});msg="Nota salvata"}
+  else if(k==="task"){const due=p.due||capture.date||null;S.tasks.push({id:uid(),title:p.title,due,time:p.time,prio:p.prioSet?p.prio:+S.settings.defPrio,done:false,projectId});msg=`Attività aggiunta${due?" per "+dayLabel(due):""}`}
+  else{const date=p.due||capture.date||T();S.events.push({id:uid(),title:p.title,date,time:p.time,noteId:null,projectId});msg=`Evento ${dayLabel(date)}${p.time?" alle "+p.time:""}`}
+  save();closeSheet("cap",()=>{render();toast(msg)});
+}
+
+/* ---------- assistente AI ---------- */
+const AI_ERR={not_granted:"Per usare l'assistente consenti l'accesso a Claude quando la pagina lo chiede.",sampling_disabled:"Claude non è disponibile per questo account.",
+  rate_limited:"Troppe richieste in poco tempo. Riprova tra qualche minuto.",session_expired:"Accedi di nuovo a Claude e riprova.",refused:"Claude non ha potuto rispondere a questa richiesta. Prova a riformularla.",
+  invalid_json:"La risposta non era nel formato atteso. Riprova.",empty_completion:"Nessuna risposta. Prova a dare più dettagli.",prompt_too_large:"Richiesta troppo lunga: accorciala."};
+const DEFAULT_CLAUDE_MODEL="claude-sonnet-5-5";
+function parseLoose(t){
+  t=String(t||"").trim();
+  try{return JSON.parse(t)}catch(e){}
+  const f=t.match(/```(?:json)?\s*([\s\S]*?)```/);if(f){try{return JSON.parse(f[1])}catch(e){}}
+  const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a>=0&&b>a){try{return JSON.parse(t.slice(a,b+1))}catch(e){}}
+  throw {code:"invalid_json"};
+}
+async function callAI(prompt,signal){
+  const s=S.settings;
+  if(s.aiProvider==="openai"){
+    if(!s.aiModel)throw {code:"no_model"};
+    const r=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",signal,
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+s.aiKey},
+      body:JSON.stringify({model:s.aiModel,messages:[{role:"user",content:prompt}],response_format:{type:"json_object"}})});
+    if(!r.ok)throw {code:"http",status:r.status};
+    const j=await r.json();return parseLoose(j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content);
+  }
+  const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",signal,
+    headers:{"Content-Type":"application/json","x-api-key":s.aiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+    body:JSON.stringify({model:s.aiModel||DEFAULT_CLAUDE_MODEL,max_tokens:4000,messages:[{role:"user",content:prompt}]})});
+  if(!r.ok)throw {code:"http",status:r.status};
+  const j=await r.json();
+  return parseLoose((j.content||[]).filter(b=>b.type==="text").map(b=>b.text).join(""));
+}
+function aiErrMsg(e){
+  if(!e)return "Qualcosa è andato storto. Riprova.";
+  if(e.code==="no_model")return "Indica il nome del modello in Impostazioni › Assistente.";
+  if(e.code==="invalid_json")return AI_ERR.invalid_json;
+  if(e.code==="http"){
+    if(e.status===401||e.status===403)return "La chiave API non è valida o non ha i permessi. Controllala nelle impostazioni.";
+    if(e.status===429)return AI_ERR.rate_limited;
+    if(e.status===400||e.status===404)return "Il servizio ha rifiutato la richiesta: controlla il nome del modello nelle impostazioni.";
+    if(e.status>=500)return "Il servizio non risponde in questo momento. Riprova tra poco.";
+    return `Errore del servizio (${e.status}). Riprova.`;
+  }
+  if(e instanceof TypeError)return "Connessione non riuscita. Controlla la rete e riprova.";
+  return "Qualcosa è andato storto. Riprova.";
+}
+function aiPrompt(text){
+  const d=today0();
+  return `Sei l'assistente di un'app italiana di agenda, note e attività. Oggi è ${DOW[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]} ${d.getFullYear()} (${iso(d)}).
+Trasforma la richiesta dell'utente in elementi concreti da aggiungere all'app. Se è un impegno lungo o complicato, scomponilo in passaggi pratici, ciascuno con una data realistica che rispetti l'eventuale scadenza e non cada nel passato. Usa un evento solo per appuntamenti con un orario. Non inventare dati personali che l'utente non ha dato.
+Progetti già esistenti: ${S.projects.map(p=>p.name).join(", ")||"nessuno"}.
+Rispondi SOLO con un oggetto JSON in questa forma:
+{"summary":"una frase su cosa hai preparato","project":"nome di un progetto esistente o nuovo, oppure null","tasks":[{"title":"verbo all'infinito, breve","due":"YYYY-MM-DD o null","time":"HH:MM o null","priority":1}],"events":[{"title":"...","date":"YYYY-MM-DD","time":"HH:MM o null"}],"note":{"title":"...","body":"dettagli utili, liste con - "} oppure null}
+priority va da 1 (urgente) a 4 (nessuna). Al massimo ${({brief:6,normal:12,detailed:20})[S.settings.aiDetail]||12} attività${S.settings.aiDetail==="brief"?", solo i passaggi essenziali":S.settings.aiDetail==="detailed"?", con passaggi dettagliati":""}.${S.settings.aiNote?" Includi sempre una nota di riepilogo.":" Imposta sempre \"note\" a null."} Scrivi in italiano.
+
+Richiesta dell'utente:
+${text}`;
+}
+function cleanAI(r){
+  const out={summary:String(r?.summary||""),project:r?.project?String(r.project).slice(0,40):null,items:[]};
+  (Array.isArray(r?.tasks)?r.tasks:[]).slice(0,20).forEach(t=>{if(!t?.title)return;out.items.push({kind:"task",title:cap1(String(t.title).slice(0,120)),due:ISO_RE.test(t.due)?t.due:null,time:TIME_RE.test(t.time)?t.time:null,prio:[1,2,3,4].includes(+t.priority)?+t.priority:4,on:true})});
+  (Array.isArray(r?.events)?r.events:[]).slice(0,6).forEach(e=>{if(!e?.title||!ISO_RE.test(e.date))return;out.items.push({kind:"event",title:cap1(String(e.title).slice(0,120)),date:e.date,time:TIME_RE.test(e.time)?e.time:null,on:true})});
+  if(r?.note?.title) out.items.push({kind:"note",title:String(r.note.title).slice(0,80),body:String(r.note.body||""),on:true});
+  return out;
+}
+function assistHTML(){
+  const a=assist, avail=!!S.settings.aiKey;
+  let body="";
+  if(a.status==="loading") body=`<div class="aibody"><span class="shimmer">Claude sta preparando il piano…</span><button type="button" class="btn ghost" data-act="aistop">Interrompi</button></div>`;
+  else if(a.status==="error") body=`<div class="aibody"><p class="hint" style="color:var(--red)">${esc(a.msg)}</p></div>`;
+  else if(a.status==="done"){
+    const r=a.result, n=r.items.filter(i=>i.on).length;
+    const pName=a.projectId?proj(a.projectId)?.name:r.project;
+    body=`<div class="aibody">${r.summary?`<p style="margin:0;font-weight:500">${esc(r.summary)}</p>`:""}
+     ${pName?`<p class="hint">Progetto: <b>${esc(pName)}</b>${!a.projectId&&!projectByName(pName)?" (verrà creato)":""}</p>`:""}
+     <div class="ailist">${r.items.map((it,i)=>`<label style="--i:${i}"><input type="checkbox" data-ai="${i}" ${it.on?"checked":""}><span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+       <span class="k ${it.kind==="event"?"e":it.kind==="note"?"n":""}">${{task:"Attività",event:"Evento",note:"Nota"}[it.kind]}${it.kind==="task"&&it.prio<4?" · priorità "+it.prio:""}</span>
+       <span class="ttl">${esc(it.title)}</span>${it.kind!=="note"&&(it.due||it.date)?`<span class="meta">${cap1(dayLabel(it.due||it.date))}${it.time?" · "+it.time:""}</span>`:""}</span></label>`).join("")||'<div class="empty">Nessun elemento proposto.</div>'}</div>
+     <div class="actions"><button class="btn" data-act="aiadd" ${n?"":"disabled"} style="flex:1">Aggiungi ${n} ${n===1?"elemento":"elementi"}</button><button type="button" class="btn ghost" data-act="airetry">Rigenera</button></div></div>`;
+  }
+  return `<div class="scrim ${a._in?"":"enter"}" data-k="ai" data-act="closeassist"><form class="sheet" data-form="assist" role="dialog" aria-label="Assistente">
+   <span class="grab"></span>
+   <div class="shead"><h2><span class="qi" style="width:30px;height:30px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--blue));color:#fff;display:grid;place-items:center">${I("spark",17)}</span>Assistente</h2><button type="button" class="xbtn" data-act="closeassist" aria-label="Chiudi">${I("x",16)}</button></div>
+   <p class="hint" style="padding:0">Descrivi un impegno lungo o complicato: l'assistente lo divide in attività con le date, eventi e una nota di riepilogo. Controlli tutto prima di aggiungere.</p>
+   <textarea id="aitext" placeholder="Entro fine novembre devo preparare la dichiarazione dei redditi: raccogliere ricevute mediche, CU, spese della casa e fissare un appuntamento col commercialista" aria-label="Richiesta all'assistente" ${a.status==="loading"?"disabled":""}>${esc(a.text)}</textarea>
+   <label class="lbl">Progetto <select class="sel" id="aiproj"><option value="">Lo sceglie l'assistente</option>${S.projects.map(p=>`<option value="${p.id}" ${a.projectId===p.id?"selected":""}>${esc(p.name)}</option>`).join("")}</select></label>
+   ${a.status==="loading"?"":`<button class="btn" ${avail?"":"disabled"}>${I("spark",17)}${a.status==="done"?"Chiedi di nuovo":"Prepara il piano"}</button>`}
+   ${!avail?`<p class="hint" style="padding:0">Per usare l'assistente serve la tua chiave API. <button type="button" data-act="aisettings">Aggiungila nelle impostazioni</button></p>`:""}
+   ${body}
+   <p class="note-ai">L'assistente usa la chiave API che hai inserito nelle impostazioni (${S.settings.aiProvider==="openai"?"OpenAI":"Claude"}). La richiesta parte da questo dispositivo e la chiave non esce mai dal telefono, se non verso il servizio scelto.</p>
+  </form></div>`;
+}
+async function runAssist(fresh){
+  const text=(document.getElementById("aitext")?.value||assist.text).trim();
+  assist.text=text;assist.projectId=document.getElementById("aiproj")?.value||assist.projectId||null;
+  if(!text){toast("Scrivi prima la richiesta");return}
+  if(!S.settings.aiKey){assist.status="error";assist.msg="Aggiungi prima la chiave API in Impostazioni › Assistente.";renderLayer();return}
+  assist.ctl?.abort();const ctl=new AbortController();assist.ctl=ctl;
+  assist.status="loading";renderLayer();
+  try{
+    const r=await callAI(aiPrompt(text),ctl.signal);
+    if(assist?.ctl!==ctl)return;
+    assist.result=cleanAI(r);assist.status="done";
+  }catch(e){
+    if(!assist||assist.ctl!==ctl)return;
+    if(e&&e.name==="AbortError"){assist.status="idle"}else{assist.status="error";assist.msg=aiErrMsg(e)}
+  }
+  renderLayer();
+}
+function addAssist(){
+  const r=assist.result;if(!r)return;
+  let projectId=assist.projectId||null;
+  if(!projectId&&r.project) projectId=projectByName(r.project,true).id;
+  let n=0;
+  const note=r.items.find(i=>i.kind==="note"&&i.on);
+  if(note){S.notes.push({id:uid(),title:note.title,body:note.body,pinned:false,updated:Date.now(),projectId});n++}
+  r.items.forEach(it=>{if(!it.on||it.kind==="note")return;n++;
+    if(it.kind==="task")S.tasks.push({id:uid(),title:it.title,due:it.due,time:it.time,prio:it.prio,done:false,projectId,noteId:null});
+    else S.events.push({id:uid(),title:it.title,date:it.date,time:it.time,noteId:null,projectId});
+  });
+  save();
+  closeSheet("ai",()=>{if(projectId){curProj=projectId;tab="proj"}render(true);toast(`${n} elementi aggiunti${projectId?" a "+proj(projectId).name:""}`)});
+}
+
+/* ---------- aspetto ---------- */
+const ACCENTS=[["indigo","Indaco","#4A4FC9","#9EA2FF","#FFFFFF","#10123A"],["teal","Petrolio","#12766B","#4FC6B5","#FFFFFF","#03201B"],["blue","Blu","#2D6BD2","#7DA9FF","#FFFFFF","#071A3A"],["violet","Viola","#6B4CC4","#A68DF0","#FFFFFF","#1A0F3A"],
+  ["amber","Ambra","#A9670E","#F2B45C","#FFFFFF","#2A1A03"],["rose","Rosa","#C23E78","#F07DAE","#FFFFFF","#3A0A20"],["graphite","Grafite","#2B3440","#D5DCE4","#FFFFFF","#0D1015"]];
+const root=document.documentElement;
+let hostTheme=root.getAttribute("data-theme"), selfSet=false;
+const mqDark=window.matchMedia?matchMedia("(prefers-color-scheme: dark)"):null;
+function isDark(){const a=root.getAttribute("data-theme");return a==="dark"||(a!=="light"&&!!(mqDark&&mqDark.matches))}
+function hexA(h,a){const n=parseInt(h.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`}
+function applyAccent(){
+  const a=ACCENTS.find(x=>x[0]===S.settings.accent)||ACCENTS[0], d=isDark();
+  if(a[0]==="indigo"){["--accent","--accent-ink","--accent-soft"].forEach(p=>root.style.removeProperty(p));return}
+  const c=d?a[3]:a[2];root.style.setProperty("--accent",c);root.style.setProperty("--accent-ink",d?a[5]:a[4]);root.style.setProperty("--accent-soft",hexA(c,d?.15:.13));
+}
+function applyAppearance(){
+  const s=S.settings;selfSet=true;
+  if(s.theme==="system"){if(hostTheme)root.setAttribute("data-theme",hostTheme);else root.removeAttribute("data-theme")}else root.setAttribute("data-theme",s.theme);
+  selfSet=false;applyAccent();
+  root.classList.toggle("calm",!!s.reduceMotion);root.classList.toggle("solid",!!s.reduceGlass);
+}
+if(mqDark&&mqDark.addEventListener)mqDark.addEventListener("change",()=>{if(!S)return;applyAccent();if(tab==="settings")render(false)});
+try{new MutationObserver(()=>{if(selfSet||!S)return;if(S.settings.theme==="system")hostTheme=root.getAttribute("data-theme");applyAccent()}).observe(root,{attributes:true,attributeFilter:["data-theme"]})}catch(e){}
+
+/* ---------- impostazioni ---------- */
+let setConfirm=null, dlFn=null;
+const swRow=(key,label,sub)=>`<div class="srow"><span class="sl">${label}${sub?`<em>${sub}</em>`:""}</span><label class="sw"><input type="checkbox" data-set="${key}" ${S.settings[key]?"checked":""} aria-label="${label}"><span></span></label></div>`;
+const selRow=(key,label,opts,num)=>`<div class="srow"><span class="sl">${label}</span><select class="sel" data-set="${key}" ${num?'data-num="1"':""} aria-label="${label}">${opts.map(([v,l])=>`<option value="${v}" ${String(S.settings[key])===String(v)?"selected":""}>${l}</option>`).join("")}</select></div>`;
+const inRow=(key,label,type,ph)=>`<div class="srow col"><span class="sl">${label}</span><input class="sel tm" style="width:100%;max-width:100%" type="${type}" data-set="${key}" value="${esc(S.settings[key])}" placeholder="${esc(ph)}" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="${label}"></div>`;
+const notifPerm=()=>("Notification" in window)?Notification.permission:"unsupported";
+const timeRow=(key,label)=>`<div class="srow"><span class="sl">${label}</span><input type="time" class="sel tm" data-set="${key}" value="${S.settings[key]}" aria-label="${label}"></div>`;
+const segRow=(key,label,opts)=>{const i=Math.max(0,opts.findIndex(o=>String(o[0])===String(S.settings[key])));
+  return `<div class="srow col"><span class="sl">${label}</span><div class="seg" id="seg-${key}" style="--n:${opts.length};--si:${i}"><span class="thumb"></span>${opts.map(([v,l])=>`<button data-act="setseg" data-key="${key}" data-v="${v}" aria-pressed="${String(S.settings[key])===String(v)}">${l}</button>`).join("")}</div></div>`};
+const grp=(title,rows,foot)=>`<section class="sec"><div class="sechead"><h2 style="font-size:17px">${title}</h2></div><div class="list glass sgroup">${rows}</div>${foot?`<p class="hint">${foot}</p>`:""}</section>`;
+function vSettings(){
+  const s=S.settings, d=isDark(), acc=ACCENTS.find(a=>a[0]===s.accent)||ACCENTS[0];
+  const lead=[[0,"All'ora esatta"],[5,"5 min prima"],[10,"10 min prima"],[15,"15 min prima"],[30,"30 min prima"],[60,"1 ora prima"]];
+  return `<div class="stack"><button class="back glass" data-act="tab" data-tab="oggi">${I("chevL",18)}Oggi</button><header class="hd"><h1 class="lt">Impostazioni</h1></header>
+  ${grp("Aspetto",segRow("theme","Tema",[["system","Sistema"],["light","Chiaro"],["dark","Scuro"]])
+    +`<div class="srow"><span class="sl">Colore principale<em>${acc[1]}</em></span><div class="swatches">${ACCENTS.map(a=>`<button class="swatch" data-act="accent" data-v="${a[0]}" aria-pressed="${s.accent===a[0]}" aria-label="${a[1]}" style="background:${d?a[3]:a[2]}"></button>`).join("")}</div></div>`
+    +swRow("reduceMotion","Riduci animazioni","Cambi immediati, senza movimento")
+    +swRow("reduceGlass","Riduci trasparenza","Superfici piene al posto del vetro"))}
+  ${grp("Schermata Oggi",swRow("showWidgets","Riepilogo in alto")+swRow("showAgenda","Agenda")+swRow("showTasks","Da fare")+swRow("showNotes","Note recenti"))}
+  ${grp("Attività",selRow("defPrio","Priorità predefinita",[[1,"Alta"],[2,"Media"],[3,"Bassa"],[4,"Nessuna"]],true)
+    +selRow("defProject","Progetto predefinito",[["","Nessuno"],...S.projects.map(p=>[p.id,esc(p.name)])])
+    +swRow("rollover","Sposta a oggi quelle in ritardo","All'apertura dell'app"))}
+  ${grp("Calendario",segRow("weekStart","La settimana inizia di",[[1,"Lunedì"],[0,"Domenica"]]))}
+  ${grp("Focus",selRow("focusWork","Concentrazione",[15,20,25,30,45,50,60].map(m=>[m,m+" minuti"]),true)
+    +selRow("focusBreak","Pausa",[3,5,10,15].map(m=>[m,m+" minuti"]),true)
+    +swRow("autoBreak","Avvia la pausa da sola"))}
+  ${grp("Notifiche",swRow("notifTasks","Promemoria attività","Per le attività con un orario")
+    +(s.notifTasks?selRow("taskLead","Avvisami",lead,true):"")
+    +swRow("notifEvents","Promemoria eventi")
+    +(s.notifEvents?selRow("eventLead","Avvisami",lead,true):"")
+    +swRow("morning","Riepilogo del mattino","Eventi e attività della giornata")
+    +(s.morning?timeRow("morningAt","Orario"):"")
+    +swRow("quietOn","Ore di silenzio","Nessun avviso in questa fascia")
+    +(s.quietOn?timeRow("quietFrom","Dalle")+timeRow("quietTo","Alle"):"")
+    +swRow("sound","Suono")
+    +`<div class="srow"><span class="sl">Notifiche del sistema<em>${({granted:"Attive: avvisi anche con Nodo in secondo piano",denied:"Bloccate: riattivale dalle impostazioni del telefono o del browser",default:"Ricevi gli avvisi anche quando sei in un'altra app",unsupported:"Su iPhone servono Nodo aggiunto alla Home e iOS 16.4 o successivo"})[notifPerm()]}</em></span>${notifPerm()==="default"?`<button class="btn sm ghost" data-act="askperm">Attiva</button>`:""}</div>`
+    +`<div class="srow"><span class="sl">Prova una notifica</span><button class="btn sm ghost" data-act="testnotif">Invia</button></div>`,
+    "Gli avvisi arrivano mentre Nodo è aperto o in secondo piano. Con l'app chiusa del tutto servirà la versione per gli store.")}
+  ${grp("Assistente",selRow("aiProvider","Servizio",[["anthropic","Claude (Anthropic)"],["openai","OpenAI"]])
+    +inRow("aiKey","Chiave API","password",s.aiProvider==="openai"?"sk-…":"sk-ant-…")
+    +inRow("aiModel","Modello","text",s.aiProvider==="openai"?"Nome del modello (obbligatorio)":"Vuoto = "+DEFAULT_CLAUDE_MODEL)
+    +segRow("aiDetail","Dettaglio del piano",[["brief","Essenziale"],["normal","Normale"],["detailed","Dettagliato"]])
+    +swRow("aiNote","Aggiungi sempre una nota di riepilogo"),
+    "La chiave resta salvata solo su questo dispositivo e non finisce nei backup. Usa una chiave personale con un limite di spesa impostato nel tuo account.")}
+  ${grp("Dati",`<div class="srow"><span class="sl">Esporta un backup<em>File JSON con note, attività, eventi e progetti</em></span><button class="btn sm ghost" data-act="export">Esporta</button></div>`
+    +`<div class="srow"><span class="sl">Importa un backup<em>Sostituisce i dati attuali</em></span><label class="btn sm ghost">Importa<input type="file" id="impfile" accept=".json,application/json" hidden></label></div>`
+    +`<div class="srow"><span class="sl">Dati di esempio</span>${setConfirm==="reset"?`<span class="actions"><button class="btn sm" data-act="doreset">Conferma</button><button class="btn sm ghost" data-act="askconf" data-v="">Annulla</button></span>`:`<button class="btn sm ghost" data-act="askconf" data-v="reset">Ripristina</button>`}</div>`
+    +`<div class="srow"><span class="sl" style="color:var(--red)">Cancella tutti i dati</span>${setConfirm==="wipe"?`<span class="actions"><button class="btn sm danger" data-act="dowipe">Cancella</button><button class="btn sm ghost" data-act="askconf" data-v="">Annulla</button></span>`:`<button class="btn sm ghost" data-act="askconf" data-v="wipe" style="color:var(--red)">Cancella</button>`}</div>`,
+    "")}
+  <div class="actions" style="justify-content:center"><button class="btn sm ghost" data-act="onb-open">Rivedi la presentazione</button></div>
+  <p class="hint" style="text-align:center">Nodo · versione 0.6</p></div>`;
+}
+
+/* ---------- notifiche ---------- */
+let audioCtx=null, nbSeq=0;
+const nbMeta={}, snoozed={};
+document.addEventListener("pointerdown",()=>{try{if(!audioCtx){const AC=window.AudioContext||window.webkitAudioContext;if(AC)audioCtx=new AC()}else if(audioCtx.state==="suspended")audioCtx.resume().catch(()=>{})}catch(e){}},{passive:true});
+function chime(){
+  if(!S.settings.sound||!audioCtx)return;
+  try{const t=audioCtx.currentTime;[[880,0],[1318.5,.13]].forEach(([f,d])=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type="sine";o.frequency.value=f;
+    g.gain.setValueAtTime(0,t+d);g.gain.linearRampToValueAtTime(.11,t+d+.02);g.gain.exponentialRampToValueAtTime(.0001,t+d+.55);o.connect(g);g.connect(audioCtx.destination);o.start(t+d);o.stop(t+d+.6)})}catch(e){}
+}
+function notify(o){
+  const nid="n"+(++nbSeq);nbMeta[nid]=o;const box=document.getElementById("notifs");
+  const el=document.createElement("div");el.className="nb glass";el.dataset.nid=nid;el.setAttribute("role","status");
+  el.innerHTML=`<span class="nbi">${MINI_LOGO}</span><div class="nbm"><span class="nbt"><b>Nodo</b><span>adesso</span></span><strong>${esc(o.title)}</strong>${o.body?`<span class="nbb">${esc(o.body)}</span>`:""}${o.actions&&o.actions.length?`<div class="nba">${o.actions.map(a=>`<button class="btn sm ghost" data-act="${a.act}" data-nid="${nid}">${esc(a.label)}</button>`).join("")}</div>`:""}</div><button class="xbtn" data-act="nb-close" data-nid="${nid}" aria-label="Chiudi notifica">${I("x",14)}</button>`;
+  box.prepend(el);while(box.children.length>3)box.lastElementChild.remove();
+  chime();setTimeout(()=>dismissNb(nid),9000);
+  if(document.hidden&&notifPerm()==="granted"&&swReg){try{swReg.showNotification(o.title,{body:o.body||"",icon:"icons/icon-192.png",badge:"icons/icon-192.png",tag:o.key||nid})}catch(e){}}
+}
+function dismissNb(nid){const el=document.querySelector(`.nb[data-nid="${nid}"]`);delete nbMeta[nid];if(!el)return;if(RM()){el.remove();return}el.classList.add("out");setTimeout(()=>el.remove(),340)}
+const toMin=hm=>{const [h,m]=String(hm).split(":").map(Number);return (h||0)*60+(m||0)};
+function inQuiet(){const s=S.settings;if(!s.quietOn)return false;const n=new Date(),m=n.getHours()*60+n.getMinutes(),a=toMin(s.quietFrom),b=toMin(s.quietTo);return a<=b?(m>=a&&m<b):(m>=a||m<b)}
+function checkNotifs(){
+  if(!S||!S.settings)return;
+  const s=S.settings, t=T(), now=new Date(), nm=now.getHours()*60+now.getMinutes();
+  for(const k in S.notified)if(S.notified[k]!==t)delete S.notified[k];
+  if(inQuiet())return;
+  const sent=k=>!!S.notified[k]||(snoozed[k]&&Date.now()<snoozed[k]);
+  const mark=k=>{S.notified[k]=t;save()};
+  if(s.morning){const k="morning:"+t,mm=toMin(s.morningAt);
+    if(!sent(k)&&nm>=mm&&nm<mm+240){mark(k);const ev=S.events.filter(e=>e.date===t).length,tk=S.tasks.filter(x=>!x.done&&x.due&&x.due<=t).length;
+      notify({title:"Buongiorno",body:`Oggi hai ${ev} ${ev===1?"evento":"eventi"} e ${tk} attività da fare.`,actions:[{label:"Apri Oggi",act:"nb-oggi"}]})}}
+  if(s.notifEvents)S.events.forEach(e=>{if(e.date!==t||!e.time)return;const at=toMin(e.time),k=`ev:${e.id}:${t}:${e.time}`;
+    if(sent(k))return;if(nm>=at-s.eventLead&&nm<at+30){mark(k);notify({key:k,id:e.id,title:e.title,body:at>nm?`Tra ${at-nm} minuti, alle ${e.time}`:`Adesso, alle ${e.time}`,actions:[{label:"Posticipa 10 min",act:"nb-snooze"}]})}});
+  if(s.notifTasks)S.tasks.forEach(x=>{if(x.done||x.due!==t||!x.time)return;const at=toMin(x.time),k=`tk:${x.id}:${t}:${x.time}`;
+    if(sent(k))return;if(nm>=at-s.taskLead&&nm<at+60){mark(k);notify({key:k,id:x.id,title:x.title,body:at>nm?`Promemoria per le ${x.time}`:`Da fare ora · ${x.time}`,actions:[{label:"Fatto",act:"nb-done"},{label:"Posticipa 10 min",act:"nb-snooze"}]})}});
+}
+
+/* ---------- presentazione iniziale ---------- */
+let onb=null;
+function onbHTML(){
+  const p=parse("Riunione con Marco venerdì alle 10 @Lavoro");
+  const chips=[["e","Evento"],["",cap1(dayLabel(p.due))],["","ore "+p.time],["","@"+p.project]];
+  const last=onb.first
+    ?`<div class="onb-slide"><h2>Come vuoi iniziare?</h2>
+      <div class="onb-choice"><button class="onb-opt glass primary" data-act="onb-demo"><b>Esplora con dati di esempio</b><span>Progetti, note ed eventi già pronti per provare tutto. Li cancelli quando vuoi.</span></button>
+      <button class="onb-opt glass" data-act="onb-empty"><b>Parti da zero</b><span>Un'agenda vuota, pronta per le tue cose.</span></button></div>
+      <p class="hint" style="padding:0">Potrai cambiare idea da Impostazioni › Dati.</p></div>`
+    :`<div class="onb-slide"><h2>Tutto qui</h2><p>Le tue note e attività ti aspettano dove le hai lasciate.</p><button class="btn" data-act="onb-close">Torna a Nodo</button></div>`;
+  return `<div class="onb ${RM()?"":"enter"}" role="dialog" aria-modal="true" aria-label="Benvenuto in Nodo"><div class="onb-in">
+   <div class="onb-top"><button class="link" data-act="onb-skip" id="onbskip">Salta</button></div>
+   <div class="onb-view"><div class="onb-track" id="onbt">
+    <div class="onb-slide"><div class="onb-logo"><span>nodo</span></div><h2>Benvenuto in Nodo</h2><p>Note, attività, progetti e calendario in un'unica app. Tutto collegato, invece che sparso in quattro app diverse.</p></div>
+    <div class="onb-slide"><h2>Scrivi come parli</h2><p>Premi + e scrivi una frase normale. Nodo capisce se è una nota, un'attività o un evento, con data, ora e progetto.</p>
+     <div class="onb-demo glass"><span class="onb-type">Riunione con Marco venerdì alle 10 @Lavoro</span><div class="chips">${chips.map(([c,t],i)=>`<span class="chip ${c}" style="--i:${i}">${esc(t)}</span>`).join("")}</div></div></div>
+    <div class="onb-slide"><h2>Tutto collegato</h2><div class="onb-feat">
+     <div><span class="qi">${I("folder",20)}</span><span><b>Progetti</b>Attività, eventi e note dello stesso lavoro in un unico posto.</span></div>
+     <div><span class="qi">${I("note",20)}</span><span><b>Note collegate</b>Scrivi [[Titolo]] per legare due note e - [ ] per creare un'attività.</span></div>
+     <div><span class="qi">${I("spark",20)}</span><span><b>Assistente</b>Trasforma un impegno lungo in passaggi con le date.</span></div>
+     <div><span class="qi">${I("timer",20)}</span><span><b>Focus</b>Un timer da 25 minuti legato a quello che stai facendo.</span></div></div></div>
+    ${last}
+   </div></div>
+   <div class="onb-foot"><div class="onb-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div class="actions"><button class="btn sm ghost" data-act="onb-prev" id="onbprev">Indietro</button><button class="btn sm" data-act="onb-next" id="onbnext">Avanti</button></div></div>
+  </div></div>`;
+}
+function updateOnb(){
+  const t=document.getElementById("onbt");if(!t||!onb)return;
+  t.style.setProperty("--oi",onb.i);
+  t.querySelectorAll(".onb-slide").forEach((s,k)=>{s.classList.toggle("on",k===onb.i);s.inert=k!==onb.i});
+  document.querySelectorAll(".onb-dots i").forEach((d,k)=>d.classList.toggle("on",k===onb.i));
+  const last=onb.i===3;
+  document.getElementById("onbnext").hidden=last;
+  document.getElementById("onbprev").hidden=onb.i===0;
+  document.getElementById("onbskip").hidden=last;
+}
+function onbGo(d){if(!onb)return;onb.i=Math.max(0,Math.min(3,onb.i+d));updateOnb()}
+function openOnb(first){
+  onb={i:0,first:!!first};
+  const box=document.getElementById("onb");box.innerHTML=onbHTML();
+  requestAnimationFrame(()=>requestAnimationFrame(updateOnb));
+  const v=box.querySelector(".onb-view");let x0=null;
+  v.addEventListener("touchstart",e=>{x0=e.touches[0].clientX},{passive:true});
+  v.addEventListener("touchend",e=>{if(x0===null)return;const dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)>50)onbGo(dx<0?1:-1);x0=null});
+  setTimeout(()=>document.getElementById("onbnext")?.focus(),150);
+}
+function closeOnb(after){
+  const el=document.querySelector("#onb .onb");
+  const done=()=>{document.getElementById("onb").innerHTML="";onb=null;after&&after()};
+  if(!el||RM()){done();return}
+  el.classList.remove("enter");el.classList.add("closing");setTimeout(done,340);
+}
+
+/* ---------- render e motion ---------- */
+function buildDock(){
+  document.getElementById("dock").innerHTML=`<div class="in"><nav class="tabs glass" id="tabs" aria-label="Sezioni"><span class="lens" id="lens"></span>
+    ${TABS.map(([k,l,ic])=>`<button data-act="tab" data-tab="${k}">${I(ic,22)}<span>${l}</span></button>`).join("")}</nav>
+    <button class="fab glass" data-act="capture" aria-label="Aggiungi">${I("plus",28)}</button></div>`;
+}
+function updateTabs(){
+  const idx=TAB_IDX[tab];const lens=document.getElementById("lens");
+  if(idx===undefined){lens.style.opacity="0"}else{lens.style.opacity="1";lens.style.setProperty("--ti",idx)}
+  document.querySelectorAll("#tabs button").forEach((b,i)=>{if(i===idx)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current")});
+}
+function countUp(el){
+  const to=+el.dataset.count;if(!to||RM()){el.textContent=to;return}
+  const t0=performance.now(),dur=700;el.textContent="0";
+  const step=t=>{const k=Math.min(1,(t-t0)/dur);el.textContent=Math.round(to*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(step)};
+  requestAnimationFrame(step);
+}
+function settle(root,enter){
+  if(!enter) root.classList.add("instant");
+  const go=()=>{
+    root.querySelectorAll("[data-to]").forEach(c=>c.setAttribute("stroke-dashoffset",c.dataset.to));
+    root.querySelectorAll("[data-w]").forEach(b=>b.style.width=b.dataset.w+"%");
+    if(!enter) requestAnimationFrame(()=>root.classList.remove("instant"));
+  };
+  if(enter) requestAnimationFrame(()=>requestAnimationFrame(go)); else go();
+  if(enter) root.querySelectorAll("[data-count]").forEach(countUp);
+}
+function render(enter){
+  const v=document.getElementById("view");
+  v.innerHTML=({oggi:vOggi,prog:vProg,proj:vProj,note:vNote,task:vTask,cal:vCal,focus:vFocus,settings:vSettings})[tab]();
+  v.classList.remove("enter");
+  if(enter&&!RM()){void v.offsetWidth;v.querySelectorAll(":scope>.stack>*").forEach((c,i)=>c.style.setProperty("--i",Math.min(i,10)));v.classList.add("enter");v.scrollTop=0}
+  updateTabs();renderLayer();settle(v,enter);
+  if(tab==="focus")updFocus();
+}
+function renderLayer(){
+  const L=document.getElementById("layer");
+  L.innerHTML=(editor?editorHTML():"")+(capture?captureHTML():"")+(assist?assistHTML():"");
+  if(editor)editor._in=true;
+  if(capture){const first=!capture._in;capture._in=true;lastChips="";capPreview();if(first)setTimeout(()=>document.getElementById("cap")?.focus(),80)}
+  if(assist){const first=!assist._in;assist._in=true;if(first)setTimeout(()=>document.getElementById("aitext")?.focus(),80)}
+}
+let toastT=null;
+function toast(msg){const el=document.getElementById("toast");el.innerHTML=`<i></i>${esc(msg)}`;requestAnimationFrame(()=>el.classList.add("show"));clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove("show"),2600)}
+function collapse(el){if(RM())return;el.style.maxHeight=el.offsetHeight+"px";void el.offsetHeight;el.classList.add("leaving")}
+
+/* ---------- eventi ---------- */
+document.addEventListener("click",e=>{
+  if(e.target.matches("[data-ai]"))return;
+  const b=e.target.closest("[data-act]");if(!b)return;
+  const a=b.dataset.act,id=b.dataset.id;
+  if((a==="closecap"||a==="closeassist")&&b.classList.contains("scrim")&&e.target!==b)return;
+  switch(a){
+    case "tab": if(editor){commitEditor();editor=null}projEdit=null;tab=b.dataset.tab;render(true);break;
+    case "capture": capture={kind:b.dataset.kind||"note",manual:!!b.dataset.kind,date:b.dataset.d||null,projectId:b.dataset.proj||(tab==="proj"?curProj:null)||S.settings.defProject||null,_in:false};renderLayer();break;
+    case "closecap": closeSheet("cap");break;
+    case "kind": capture.kind=b.dataset.k;capture.manual=true;setSeg("kseg","k",capture.kind);capPreview();break;
+    case "ex": document.getElementById("cap").value=b.textContent;capture.manual=false;capPreview();break;
+    case "assist":{const t=capture?document.getElementById("cap")?.value||"":"";const pid=b.dataset.proj||capture?.projectId||(tab==="proj"?curProj:null);
+      capture=null;assist={text:t,projectId:pid||null,status:"idle",result:null,msg:"",_in:false};renderLayer();break}
+    case "closeassist": closeSheet("ai");break;
+    case "aistop": assist?.ctl?.abort();break;
+    case "airetry": runAssist(true);break;
+    case "aiadd": e.preventDefault();addAssist();break;
+    case "toggle":{const t=S.tasks.find(x=>x.id===id);if(!t)break;t.done=!t.done;if(t.noteId)setNoteLine(t);save();
+      const row=b.closest(".row,.tl");
+      if(row){row.classList.toggle("done",t.done);row.classList.remove("pop");void row.offsetWidth;row.classList.add("pop")}
+      const leave=row&&row.classList.contains("row")&&tab!=="cal"&&!editor;
+      if(leave&&!RM())setTimeout(()=>collapse(row),360);
+      setTimeout(()=>render(false),RM()?0:(leave?820:420));break}
+    case "deltask":{S.tasks=S.tasks.filter(x=>x.id!==id);save();const row=b.closest(".row");if(row&&!RM()){collapse(row);setTimeout(()=>render(false),450)}else render(false);break}
+    case "delevent":{S.events=S.events.filter(x=>x.id!==id);save();const row=b.closest(".row");if(row&&!RM()){collapse(row);setTimeout(()=>render(false),450)}else render(false);break}
+    case "eventnote":{const ev=S.events.find(x=>x.id===id);if(!ev)break;
+      if(ev.noteId&&S.notes.some(n=>n.id===ev.noteId)){openNote(ev.noteId);break}
+      const d=fromIso(ev.date);
+      const n={id:uid(),title:`${ev.title} – ${d.getDate()} ${MONS[d.getMonth()]}`,body:"Partecipanti: \n\n## Note\n\n## Azioni\n- [ ] ",pinned:false,updated:Date.now(),projectId:ev.projectId||null};
+      S.notes.push(n);ev.noteId=n.id;save();render(false);openNote(n.id,"edit");break}
+    case "opennote": openNote(id);break;
+    case "newnote": newNote("",b.dataset.proj||(tab==="proj"?curProj:null));break;
+    case "closenote": closeEditor();break;
+    case "mode": commitEditor();editor.mode=editor.mode==="edit"?"view":"edit";renderLayer();break;
+    case "pin":{commitEditor();const n=S.notes.find(x=>x.id===editor.id);n.pinned=!n.pinned;save();renderLayer();toast(n.pinned?"Nota fissata in alto":"Nota non più fissata");break}
+    case "askdel": editor.confirmDel=true;renderLayer();break;
+    case "delnote":{const nid=editor.id;S.notes=S.notes.filter(x=>x.id!==nid);S.tasks.forEach(t=>{if(t.noteId===nid)t.noteId=null});S.events.forEach(ev=>{if(ev.noteId===nid)ev.noteId=null});
+      save();editor.id=null;closeEditor();toast("Nota eliminata");break}
+    case "wikilink":{commitEditor();const t=b.dataset.title;const n=noteByTitle(t);
+      if(n)openNote(n.id);else{const cur=S.notes.find(x=>x.id===editor?.id);toast(`Creata la nota «${t}»`);newNote(t,cur?.projectId)}break}
+    case "tagfilter": noteTag=noteTag===b.dataset.tag?null:b.dataset.tag;document.querySelectorAll('[data-act="tagfilter"]').forEach(x=>x.setAttribute("aria-pressed",x.dataset.tag===noteTag));
+      {const l=document.getElementById("nlist");l.innerHTML=noteListHTML();l.style.animation="none";void l.offsetWidth;l.style.animation="fadein .35s ease"}break;
+    case "tfilter":{taskFilter=b.dataset.f;setSeg("tseg","f",taskFilter);const tb=document.getElementById("tbody");
+      setTimeout(()=>{tb.innerHTML=taskBody();if(!RM()){[...tb.children].forEach((c,i)=>{c.style.animation=`rise .5s var(--ease) ${i*45}ms both`})}},120);break}
+    case "openproj": curProj=id;projEdit=null;tab="proj";render(true);break;
+    case "projedit": projEdit=b.dataset.v||null;render(false);if(projEdit==="rename")document.getElementById("rp")?.select();break;
+    case "delproj":{S.tasks.forEach(t=>{if(t.projectId===curProj)t.projectId=null});S.notes.forEach(n=>{if(n.projectId===curProj)n.projectId=null});S.events.forEach(ev=>{if(ev.projectId===curProj)ev.projectId=null});
+      S.projects=S.projects.filter(p=>p.id!==curProj);curProj=null;projEdit=null;tab="prog";save();render(true);toast("Progetto eliminato");break}
+    case "selday":{calSel=b.dataset.d;const d=fromIso(calSel);
+      if(d.getMonth()!==calMonth.getMonth()){calMonth=new Date(d.getFullYear(),d.getMonth(),1);render(false)}
+      else{document.querySelectorAll(".day").forEach(x=>{const on=x.dataset.d===calSel;x.classList.toggle("sel",on);on?x.setAttribute("aria-current","date"):x.removeAttribute("aria-current")});
+        const tmp=document.createElement("div");tmp.innerHTML=vCal();const fresh=tmp.querySelector("#calday");const cur=document.getElementById("calday");
+        if(fresh&&cur){cur.replaceWith(fresh);if(!RM())fresh.style.animation="rise .45s var(--ease) both"}}
+      break}
+    case "caltoday":{const d=today0();calMonth=new Date(d.getFullYear(),d.getMonth(),1);calSel=T();render(false);break}
+    case "mon": calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()+ +b.dataset.n,1);render(true);break;
+    case "fgo": if(FS.running){FS.running=false;clearInterval(timer);timer=null;FS.remaining=(FS.endAt-Date.now())/1000}
+      else{FS.running=true;FS.endAt=Date.now()+FS.remaining*1000;timer=setInterval(tick,250)}
+      b.textContent=FS.running?"Pausa":"Avvia";document.getElementById("fdisc")?.classList.toggle("run",FS.running);break;
+    case "freset": clearInterval(timer);timer=null;FS.running=false;FS.remaining=FS.mode==="work"?F.work:F.brk;render(false);break;
+    case "fskip": clearInterval(timer);timer=null;FS.running=false;FS.mode=FS.mode==="work"?"brk":"work";FS.remaining=FS.mode==="work"?F.work:F.brk;render(false);break;
+    case "onb-next": onbGo(1);break;
+    case "onb-prev": onbGo(-1);break;
+    case "onb-skip": if(onb){onb.i=3;updateOnb()}break;
+    case "onb-demo":{const keep=S.settings;seed();S.settings=keep;ensureSettings();S.onboarded=true;save();closeOnb(()=>{tab="oggi";render(true)});break}
+    case "onb-empty": S.onboarded=true;save();closeOnb(()=>{tab="oggi";render(true);toast("Inizia dal pulsante +")});break;
+    case "onb-close": closeOnb();break;
+    case "onb-open": openOnb(false);break;
+    case "setseg":{const k=b.dataset.key;let v=b.dataset.v;if(/^\d+$/.test(v))v=+v;S.settings[k]=v;save();setSeg("seg-"+k,"v",String(v));
+      if(k==="theme"){applyAppearance();setTimeout(()=>render(false),320)}break}
+    case "accent": S.settings.accent=b.dataset.v;S.settings.accentPicked=true;save();applyAccent();render(false);break;
+    case "testnotif": notify({title:"Riunione di progetto",body:"Tra 15 minuti, alle 15:00",actions:[{label:"Ok",act:"nb-close"}]});
+      if(notifPerm()==="granted"&&swReg){try{swReg.showNotification("Riunione di progetto",{body:"Tra 15 minuti, alle 15:00",icon:"icons/icon-192.png",tag:"test"})}catch(e){}}break;
+    case "nb-close": dismissNb(b.dataset.nid);break;
+    case "nb-done":{const m=nbMeta[b.dataset.nid];const t=m&&S.tasks.find(x=>x.id===m.id);if(t&&!t.done){t.done=true;if(t.noteId)setNoteLine(t);save();render(false);toast("Completata")}dismissNb(b.dataset.nid);break}
+    case "nb-snooze":{const m=nbMeta[b.dataset.nid];if(m&&m.key){delete S.notified[m.key];snoozed[m.key]=Date.now()+10*60e3;save();toast("Te lo ricordo tra 10 minuti")}dismissNb(b.dataset.nid);break}
+    case "nb-oggi": dismissNb(b.dataset.nid);if(editor){commitEditor();editor=null}tab="oggi";render(true);break;
+    case "export":{const data=JSON.stringify({...S,settings:{...S.settings,aiKey:""}},null,2);
+      const url=URL.createObjectURL(new Blob([data],{type:"application/json"}));const a=document.createElement("a");a.href=url;a.download=`nodo-backup-${T()}.json`;
+      document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);toast("Backup scaricato");break}
+    case "askperm": if("Notification" in window)Notification.requestPermission().then(p=>{render(false);if(p==="granted")toast("Notifiche del sistema attive")}).catch(()=>{});break;
+    case "aisettings": closeSheet("ai",()=>{tab="settings";render(true);setTimeout(()=>document.querySelector('[data-set="aiKey"]')?.scrollIntoView({block:"center"}),400)});break;
+    case "askconf": setConfirm=b.dataset.v||null;render(false);break;
+    case "doreset":{const keep=S.settings;seed();S.settings=keep;ensureSettings();setConfirm=null;save();render(true);toast("Dati di esempio ripristinati");break}
+    case "dowipe": S={seeded:false,projects:[],notes:[],tasks:[],events:[],focus:{count:0,countDate:T()},settings:S.settings,notified:{}};ensureSettings();setConfirm=null;save();render(true);toast("Tutti i dati sono stati cancellati");break;
+    case "clearseed": S={seeded:false,projects:[],notes:[],tasks:[],events:[],focus:{count:0,countDate:T()},settings:S.settings,notified:{}};ensureSettings();save();render(true);toast("Tutto pulito: inizia dal pulsante +");break;
+  }
+});
+document.addEventListener("submit",e=>{
+  e.preventDefault();const f=e.target.dataset.form;
+  if(f==="capture")doCapture();
+  if(f==="assist")runAssist(assist?.status==="done");
+  if(f==="quicktask"){const i=document.getElementById("qt");if(!i.value.trim())return;const p=parse(i.value);
+    const projectId=p.project?projectByName(p.project,true).id:(S.settings.defProject||null);
+    S.tasks.push({id:uid(),title:p.title,due:p.due,time:p.time,prio:p.prioSet?p.prio:+S.settings.defPrio,done:false,projectId});save();
+    const tb=document.getElementById("tbody");tb.innerHTML=taskBody();i.value="";toast(`Aggiunta${p.due?" per "+dayLabel(p.due):""}`)}
+  if(f==="newproj"){const i=document.getElementById("np");const name=i.value.trim();if(!name)return;
+    if(projectByName(name)){toast("Esiste già un progetto con questo nome");return}
+    const p=projectByName(name,true);save();curProj=p.id;tab="proj";render(true)}
+  if(f==="renameproj"){const v=document.getElementById("rp").value.trim();const p=proj(curProj);if(v&&p){p.name=v;save()}projEdit=null;render(false)}
+});
+document.addEventListener("input",e=>{
+  if(e.target.id==="q"){noteQuery=e.target.value;document.getElementById("nlist").innerHTML=noteListHTML()}
+  if(e.target.id==="cap")capPreview();
+  if(e.target.id==="aitext"&&assist)assist.text=e.target.value;
+});
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.dataset&&t.dataset.set){const k=t.dataset.set;let v=t.type==="checkbox"?t.checked:(t.dataset.num?+t.value:t.value);if(typeof v==="string")v=v.trim();
+    if(t.type==="time"&&!v)return;
+    S.settings[k]=v;save();
+    if(k==="reduceMotion"||k==="reduceGlass")applyAppearance();
+    if((k==="focusWork"||k==="focusBreak")&&!FS.running)FS.remaining=FS.mode==="work"?F.work:F.brk;
+    if(["notifTasks","notifEvents","morning","quietOn","aiProvider"].includes(k))setTimeout(()=>render(false),300);
+    if(k==="aiKey"&&v)toast("Chiave API salvata su questo dispositivo");
+    if(k.startsWith("notif")||k.startsWith("quiet")||k.startsWith("morning")||k.endsWith("Lead"))checkNotifs();
+    return}
+  if(t.id==="impfile"&&t.files&&t.files[0]){t.files[0].text().then(txt=>{const d=JSON.parse(txt);
+      if(!Array.isArray(d.notes)||!Array.isArray(d.tasks)||!Array.isArray(d.events))throw new Error("bad");
+      S={seeded:false,projects:Array.isArray(d.projects)?d.projects:[],notes:d.notes,tasks:d.tasks,events:d.events,focus:d.focus||{count:0,countDate:T()},settings:d.settings||S.settings,notified:{}};
+      ensureSettings();save();applyAppearance();render(true);toast("Backup importato")}).catch(()=>toast("File non valido: scegli un backup di Nodo"));return}
+  if(t.id==="ftask")FS.taskId=t.value;
+  if(t.id==="capproj"&&capture)capture.projectId=t.value||null;
+  if(t.id==="aiproj"&&assist){assist.projectId=t.value||null;if(assist.status==="done")renderLayer()}
+  if(t.dataset.ai!==undefined&&assist?.result){assist.result.items[+t.dataset.ai].on=t.checked;const n=assist.result.items.filter(i=>i.on).length;
+    const btn=document.querySelector('[data-act="aiadd"]');if(btn){btn.textContent=`Aggiungi ${n} ${n===1?"elemento":"elementi"}`;btn.disabled=!n}}
+  if(t.id==="nproj"&&editor){commitEditor();const n=S.notes.find(x=>x.id===editor.id);if(!n)return;const old=n.projectId;n.projectId=t.value||null;
+    S.tasks.forEach(x=>{if(x.noteId===n.id&&x.projectId===old)x.projectId=n.projectId});save();toast(n.projectId?`Nota spostata in ${proj(n.projectId).name}`:"Nota senza progetto")}
+});
+document.addEventListener("keydown",e=>{
+  if(onb){if(e.key==="ArrowRight")onbGo(1);else if(e.key==="ArrowLeft")onbGo(-1);else if(e.key==="Escape"&&!onb.first)closeOnb();return}
+  if(e.key==="Escape"){if(assist)closeSheet("ai");else if(capture)closeSheet("cap");else if(editor)closeEditor()}
+  if(e.key==="Enter"&&e.target.id==="cap"&&!e.shiftKey){e.preventDefault();doCapture()}
+});
+document.addEventListener("focusout",e=>{if(e.target.id==="nt"||e.target.id==="nb")commitEditor()});
+
+/* ---------- avvio ---------- */
+S=load();const FIRST=!S;
+if(!S)S={seeded:false,projects:[],notes:[],tasks:[],events:[],focus:{count:0,countDate:T()}};
+if(!S.focus)S.focus={count:0,countDate:T()};
+if(!S.projects)S.projects=[];
+ensureSettings();applyAppearance();
+let rolled=0;
+if(S.settings.rollover)S.tasks.forEach(x=>{if(!x.done&&x.due&&x.due<T()){x.due=T();rolled++}});
+if(!FS.running)FS.remaining=F.work;
+save();buildDock();render(true);
+if(FIRST)openOnb(true);
+if(rolled)setTimeout(()=>toast(`${rolled} ${rolled===1?"attività spostata":"attività spostate"} a oggi`),900);
+setTimeout(checkNotifs,1500);setInterval(checkNotifs,20000);
+if("serviceWorker" in navigator&&location.protocol!=="file:"){
+  navigator.serviceWorker.register("./sw.js").then(r=>{swReg=r}).catch(()=>{});
+}
+})();
+</script>
+</body>
+</html>
