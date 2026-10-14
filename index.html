@@ -896,23 +896,55 @@ function parseLoose(t){
   const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a>=0&&b>a){try{return JSON.parse(t.slice(a,b+1))}catch(e){}}
   throw {code:"invalid_json"};
 }
+/* Legge il messaggio di errore restituito dal servizio, per mostrarlo così com'è */
+async function httpErr(r,provider){
+  let detail="",status=r.status;
+  try{const t=await r.text();try{const j=JSON.parse(t);const e=Array.isArray(j)?j[0]&&j[0].error:j.error;detail=(e&&(e.message||e.status))||j.message||t}catch(_){detail=t}}catch(_){}
+  return {code:"http",status,provider,detail:String(detail||"").replace(/\s+/g," ").trim().slice(0,240)};
+}
+const GEMINI_API="https://generativelanguage.googleapis.com/v1beta";
+async function geminiGenerate(model,prompt,signal){
+  const r=await fetch(`${GEMINI_API}/models/${encodeURIComponent(model)}:generateContent`,{method:"POST",signal,
+    headers:{"Content-Type":"application/json","x-goog-api-key":S.settings.aiKey},
+    body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{responseMimeType:"application/json"}})});
+  if(!r.ok)throw await httpErr(r,"gemini");
+  const j=await r.json();
+  const c=j.candidates&&j.candidates[0];
+  if(!c){const why=j.promptFeedback&&j.promptFeedback.blockReason;throw {code:"http",status:200,provider:"gemini",detail:why?"Richiesta bloccata dal filtro di sicurezza ("+why+")":"Risposta vuota"}}
+  const parts=(c.content&&c.content.parts)||[];
+  return parseLoose(parts.filter(x=>!x.thought).map(x=>x.text||"").join(""));
+}
+/* Se il modello predefinito non è disponibile per questa chiave, ne cerca uno Flash che lo sia */
+async function geminiPickModel(signal){
+  const r=await fetch(`${GEMINI_API}/models?pageSize=200`,{signal,headers:{"x-goog-api-key":S.settings.aiKey}});
+  if(!r.ok)throw await httpErr(r,"gemini");
+  const j=await r.json();
+  const ok=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes("generateContent")).map(m=>String(m.name||"").replace(/^models\//,""))
+    .filter(n=>/flash/.test(n)&&!/(image|tts|live|audio|embedding|vision|exp|preview)/.test(n));
+  const score=n=>{const v=parseFloat((n.match(/gemini-(\d+(?:\.\d+)?)/)||[])[1]||0);return v*10-(/lite/.test(n)?1:0)};
+  ok.sort((a,b)=>score(b)-score(a));
+  return ok[0]||null;
+}
 async function callAI(prompt,signal){
-  const s=S.settings, p=prov(), model=s.aiModel||p.def||"";
-  if(!model)throw {code:"no_model"};
+  const s=S.settings, p=prov();
   if(p.kind==="gemini"){
-    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:"POST",signal,
-      headers:{"Content-Type":"application/json","x-goog-api-key":s.aiKey},
-      body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{responseMimeType:"application/json"}})});
-    if(!r.ok)throw {code:"http",status:r.status};
-    const j=await r.json();
-    const parts=(j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts)||[];
-    return parseLoose(parts.map(x=>x.text||"").join(""));
+    const chosen=s.aiModel||s.aiAutoModel||p.def;
+    try{return await geminiGenerate(chosen,prompt,signal)}
+    catch(e){
+      if(s.aiModel||!e||e.code!=="http"||(e.status!==404&&!/not found|not supported/i.test(e.detail||"")))throw e;
+      const alt=await geminiPickModel(signal);
+      if(!alt||alt===chosen)throw e;
+      s.aiAutoModel=alt;save();
+      return await geminiGenerate(alt,prompt,signal);
+    }
   }
+  const model=s.aiModel||p.def||"";
+  if(!model)throw {code:"no_model"};
   if(p.kind==="anthropic"){
     const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",signal,
       headers:{"Content-Type":"application/json","x-api-key":s.aiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
       body:JSON.stringify({model,max_tokens:4000,messages:[{role:"user",content:prompt}]})});
-    if(!r.ok)throw {code:"http",status:r.status};
+    if(!r.ok)throw await httpErr(r,"anthropic");
     const j=await r.json();
     return parseLoose((j.content||[]).filter(b=>b.type==="text").map(b=>b.text).join(""));
   }
@@ -922,7 +954,7 @@ async function callAI(prompt,signal){
   if(p.json)body.response_format={type:"json_object"};
   const r=await fetch(base+"/chat/completions",{method:"POST",signal,
     headers:{"Content-Type":"application/json","Authorization":"Bearer "+s.aiKey},body:JSON.stringify(body)});
-  if(!r.ok)throw {code:"http",status:r.status};
+  if(!r.ok)throw await httpErr(r,S.settings.aiProvider);
   const j=await r.json();
   return parseLoose(j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content);
 }
@@ -932,11 +964,16 @@ function aiErrMsg(e){
   if(e.code==="no_base")return "Indica l'indirizzo del servizio in Impostazioni › Assistente.";
   if(e.code==="invalid_json")return AI_ERR.invalid_json;
   if(e.code==="http"){
-    if(e.status===401||e.status===403)return "La chiave API non è valida o non ha i permessi. Controllala nelle impostazioni.";
-    if(e.status===429)return AI_ERR.rate_limited;
-    if(e.status===400||e.status===404)return "Il servizio ha rifiutato la richiesta: controlla il nome del modello nelle impostazioni.";
-    if(e.status>=500)return "Il servizio non risponde in questo momento. Riprova tra poco.";
-    return `Errore del servizio (${e.status}). Riprova.`;
+    const d=e.detail||"", tail=d?` Messaggio del servizio: «${d}»`:"";
+    let m;
+    if(e.status===401||e.status===403||/api[ _-]?key|API_KEY_INVALID|permission|unauthori[sz]ed|leaked/i.test(d))m="La chiave API non è valida, è stata disattivata o non ha i permessi. Controllala o creane una nuova.";
+    else if(/location|region|country|not available in your/i.test(d))m="Il servizio non è disponibile nella tua zona con questa chiave.";
+    else if(e.status===402||/billing|credit|prepay|insufficient|balance/i.test(d))m="Credito esaurito o fatturazione non attiva sull'account del servizio.";
+    else if(e.status===429)m="Limite di utilizzo raggiunto. Riprova tra qualche minuto o controlla la quota del tuo account.";
+    else if(e.status===404||/model|not found/i.test(d))m="Modello non trovato: controlla il nome del modello, oppure lascia il campo vuoto.";
+    else if(e.status>=500)m="Il servizio non risponde in questo momento. Riprova tra poco.";
+    else m=`Il servizio ha rifiutato la richiesta (errore ${e.status}).`;
+    return m+tail;
   }
   if(e instanceof TypeError)return "Connessione non riuscita. Controlla la rete. Se il problema resta, questo servizio potrebbe non accettare richieste dirette dall'app: prova Gemini o OpenRouter.";
   return "Qualcosa è andato storto. Riprova.";
@@ -1083,7 +1120,7 @@ function vSettings(){
     +(s.aiProvider==="custom"?inRow("aiBase","Indirizzo del servizio","url","https://…/v1"):"")
     +inRow("aiKey","Chiave API","password",prov().ph||"La tua chiave")
     +inRow("aiModel","Modello","text",prov().def?"Vuoto = "+prov().def:(s.aiProvider==="openrouter"?"es. fornitore/nome-modello (obbligatorio)":"Nome del modello (obbligatorio)"))
-    +`<div class="srow"><span class="sl">Prova la connessione${prov().keyAt?`<em>Chiave da ${prov().keyAt}</em>`:""}</span><button class="btn sm ghost" data-act="aitest" ${s.aiKey?"":"disabled"}>Prova</button></div>`
+    +`<div class="srow"><span class="sl">Prova la connessione${prov().keyAt?`<em>Chiave da ${prov().keyAt}</em>`:""}${s.aiProvider==="gemini"&&!s.aiModel&&s.aiAutoModel?`<em>Modello in uso: ${esc(s.aiAutoModel)}</em>`:""}<em id="aitestres" role="status" style="white-space:normal;overflow-wrap:anywhere"></em></span><button class="btn sm ghost" data-act="aitest" ${s.aiKey?"":"disabled"}>Prova</button></div>`
     +segRow("aiDetail","Dettaglio del piano",[["brief","Essenziale"],["normal","Normale"],["detailed","Dettagliato"]])
     +swRow("aiNote","Aggiungi sempre una nota di riepilogo"),
     "La chiave resta salvata solo su questo dispositivo e non finisce nei backup. Usa una chiave personale con un limite di spesa impostato nel tuo account.")}
@@ -1093,7 +1130,7 @@ function vSettings(){
     +`<div class="srow"><span class="sl" style="color:var(--red)">Cancella tutti i dati</span>${setConfirm==="wipe"?`<span class="actions"><button class="btn sm danger" data-act="dowipe">Cancella</button><button class="btn sm ghost" data-act="askconf" data-v="">Annulla</button></span>`:`<button class="btn sm ghost" data-act="askconf" data-v="wipe" style="color:var(--red)">Cancella</button>`}</div>`,
     "")}
   <div class="actions" style="justify-content:center"><button class="btn sm ghost" data-act="onb-open">Rivedi la presentazione</button></div>
-  <p class="hint" style="text-align:center">Nodo · versione 0.7</p></div>`;
+  <p class="hint" style="text-align:center">Nodo · versione 0.7.1</p></div>`;
 }
 
 /* ---------- notifiche ---------- */
@@ -1311,9 +1348,13 @@ document.addEventListener("click",e=>{
     case "nb-done":{const m=nbMeta[b.dataset.nid];const t=m&&S.tasks.find(x=>x.id===m.id);if(t&&!t.done){t.done=true;if(t.noteId)setNoteLine(t);save();render(false);toast("Completata")}dismissNb(b.dataset.nid);break}
     case "nb-snooze":{const m=nbMeta[b.dataset.nid];if(m&&m.key){delete S.notified[m.key];snoozed[m.key]=Date.now()+10*60e3;save();toast("Te lo ricordo tra 10 minuti")}dismissNb(b.dataset.nid);break}
     case "nb-oggi": dismissNb(b.dataset.nid);if(editor){commitEditor();editor=null}tab="oggi";render(true);break;
-    case "aitest":{b.disabled=true;b.textContent="…";const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),30000);
-      callAI('Rispondi solo con questo JSON: {"ok":true}',ctl.signal).then(r=>{toast(r&&r.ok?`${prov().name} collegato: funziona`:"Collegato, ma la risposta è insolita")})
-        .catch(err=>toast(err&&err.name==="AbortError"?"Nessuna risposta entro 30 secondi":aiErrMsg(err))).finally(()=>{clearTimeout(tm);b.disabled=false;b.textContent="Prova"});break}
+    case "aitest":{b.disabled=true;b.textContent="…";const res=document.getElementById("aitestres");if(res){res.textContent="Prova in corso…";res.style.color=""}
+      const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),45000);
+      const show=(msg,ok)=>{const el=document.getElementById("aitestres");if(el){el.textContent=msg;el.style.color=ok?"var(--accent)":"var(--red)"}};
+      callAI('Rispondi solo con questo JSON: {"ok":true}',ctl.signal).then(r=>{const m=S.settings.aiModel||(S.settings.aiProvider==="gemini"?(S.settings.aiAutoModel||prov().def):prov().def);
+          show(`Funziona: ${prov().name}${m?" · "+m:""}`,true);toast("Assistente collegato")})
+        .catch(err=>{show(err&&err.name==="AbortError"?"Nessuna risposta entro 45 secondi.":aiErrMsg(err),false)})
+        .finally(()=>{clearTimeout(tm);b.disabled=false;b.textContent="Prova"});break}
     case "export":{const data=JSON.stringify({...S,settings:{...S.settings,aiKey:"",aiSaved:{}}},null,2);
       const url=URL.createObjectURL(new Blob([data],{type:"application/json"}));const a=document.createElement("a");a.href=url;a.download=`nodo-backup-${T()}.json`;
       document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);toast("Backup scaricato");break}
@@ -1342,6 +1383,9 @@ document.addEventListener("input",e=>{
   if(e.target.id==="q"){noteQuery=e.target.value;document.getElementById("nlist").innerHTML=noteListHTML()}
   if(e.target.id==="cap")capPreview();
   if(e.target.id==="aitext"&&assist)assist.text=e.target.value;
+  const ds=e.target.dataset&&e.target.dataset.set;
+  if(ds==="aiKey"||ds==="aiModel"||ds==="aiBase"){S.settings[ds]=e.target.value.trim();S.settings.aiAutoModel="";save();
+    if(ds==="aiKey"){const tb=document.querySelector('[data-act="aitest"]');if(tb)tb.disabled=!S.settings.aiKey}}
 });
 document.addEventListener("change",e=>{
   const t=e.target;
@@ -1354,6 +1398,7 @@ document.addEventListener("change",e=>{
     if(k==="reduceMotion"||k==="reduceGlass")applyAppearance();
     if((k==="focusWork"||k==="focusBreak")&&!FS.running)FS.remaining=FS.mode==="work"?F.work:F.brk;
     if(["notifTasks","notifEvents","morning","quietOn","aiProvider"].includes(k))setTimeout(()=>render(false),300);
+    if(k==="aiKey"||k==="aiModel"||k==="aiBase"){S.settings.aiAutoModel="";save()}
     if(k==="aiKey"){if(v)toast("Chiave API salvata su questo dispositivo");const tb=document.querySelector('[data-act="aitest"]');if(tb)tb.disabled=!v}
     if(k.startsWith("notif")||k.startsWith("quiet")||k.startsWith("morning")||k.endsWith("Lead"))checkNotifs();
     return}
