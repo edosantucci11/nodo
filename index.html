@@ -497,9 +497,13 @@ const DEF_SETTINGS={theme:"system",accent:"indigo",reduceMotion:false,reduceGlas
   defPrio:4,defProject:"",rollover:false,weekStart:1,
   focusWork:25,focusBreak:5,autoBreak:true,
   notifTasks:true,taskLead:0,notifEvents:true,eventLead:15,morning:true,morningAt:"08:00",quietOn:false,quietFrom:"22:00",quietTo:"07:00",sound:true,
-  aiDetail:"normal",aiNote:true,aiProvider:"anthropic",aiKey:"",aiModel:""};
+  aiDetail:"normal",aiNote:true,aiProvider:"gemini",aiKey:"",aiModel:"",aiBase:"",aiSaved:{}};
 function ensureSettings(){
+  const hadProvider=!!(S.settings&&S.settings.aiProvider);
   S.settings={...DEF_SETTINGS,...(S.settings||{})};
+  if(hadProvider&&!S.settings.aiKey&&S.settings.aiProvider==="anthropic"&&!Object.keys(S.settings.aiSaved||{}).length)S.settings.aiProvider="gemini";
+  if(!PROVIDERS[S.settings.aiProvider])S.settings.aiProvider="gemini";
+  S.settings.aiSaved=S.settings.aiSaved||{};
   if(S.settings.accent==="teal"&&!S.settings.accentPicked)S.settings.accent="indigo";
   if(S.settings.defProject&&!S.projects.some(p=>p.id===S.settings.defProject))S.settings.defProject="";
   S.notified=S.notified||{};
@@ -872,7 +876,19 @@ function doCapture(){
 const AI_ERR={not_granted:"Per usare l'assistente consenti l'accesso a Claude quando la pagina lo chiede.",sampling_disabled:"Claude non è disponibile per questo account.",
   rate_limited:"Troppe richieste in poco tempo. Riprova tra qualche minuto.",session_expired:"Accedi di nuovo a Claude e riprova.",refused:"Claude non ha potuto rispondere a questa richiesta. Prova a riformularla.",
   invalid_json:"La risposta non era nel formato atteso. Riprova.",empty_completion:"Nessuna risposta. Prova a dare più dettagli.",prompt_too_large:"Richiesta troppo lunga: accorciala."};
-const DEFAULT_CLAUDE_MODEL="claude-sonnet-5-5";
+/* Servizi AI: kind = formato della richiesta; def = modello usato se il campo è vuoto */
+const PROVIDERS={
+  gemini:{name:"Gemini (Google)",kind:"gemini",def:"gemini-3.8-flash",ph:"AIza…",keyAt:"aistudio.google.com"},
+  anthropic:{name:"Claude (Anthropic)",kind:"anthropic",def:"claude-sonnet-5-5",ph:"sk-ant-…",keyAt:"console.anthropic.com"},
+  openai:{name:"OpenAI",kind:"openai",base:"https://api.openai.com/v1",ph:"sk-…",json:true,keyAt:"platform.openai.com"},
+  mistral:{name:"Mistral",kind:"openai",base:"https://api.mistral.ai/v1",keyAt:"console.mistral.ai"},
+  groq:{name:"Groq",kind:"openai",base:"https://api.groq.com/openai/v1",ph:"gsk_…",keyAt:"console.groq.com"},
+  deepseek:{name:"DeepSeek",kind:"openai",base:"https://api.deepseek.com",ph:"sk-…",keyAt:"platform.deepseek.com"},
+  xai:{name:"xAI (Grok)",kind:"openai",base:"https://api.x.ai/v1",ph:"xai-…",keyAt:"console.x.ai"},
+  openrouter:{name:"OpenRouter (molti modelli)",kind:"openai",base:"https://openrouter.ai/api/v1",ph:"sk-or-…",keyAt:"openrouter.ai"},
+  custom:{name:"Altro servizio compatibile OpenAI",kind:"openai",base:"",keyAt:""}
+};
+const prov=()=>PROVIDERS[S.settings.aiProvider]||PROVIDERS.gemini;
 function parseLoose(t){
   t=String(t||"").trim();
   try{return JSON.parse(t)}catch(e){}
@@ -881,25 +897,39 @@ function parseLoose(t){
   throw {code:"invalid_json"};
 }
 async function callAI(prompt,signal){
-  const s=S.settings;
-  if(s.aiProvider==="openai"){
-    if(!s.aiModel)throw {code:"no_model"};
-    const r=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",signal,
-      headers:{"Content-Type":"application/json","Authorization":"Bearer "+s.aiKey},
-      body:JSON.stringify({model:s.aiModel,messages:[{role:"user",content:prompt}],response_format:{type:"json_object"}})});
+  const s=S.settings, p=prov(), model=s.aiModel||p.def||"";
+  if(!model)throw {code:"no_model"};
+  if(p.kind==="gemini"){
+    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:"POST",signal,
+      headers:{"Content-Type":"application/json","x-goog-api-key":s.aiKey},
+      body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{responseMimeType:"application/json"}})});
     if(!r.ok)throw {code:"http",status:r.status};
-    const j=await r.json();return parseLoose(j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content);
+    const j=await r.json();
+    const parts=(j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts)||[];
+    return parseLoose(parts.map(x=>x.text||"").join(""));
   }
-  const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",signal,
-    headers:{"Content-Type":"application/json","x-api-key":s.aiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-    body:JSON.stringify({model:s.aiModel||DEFAULT_CLAUDE_MODEL,max_tokens:4000,messages:[{role:"user",content:prompt}]})});
+  if(p.kind==="anthropic"){
+    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",signal,
+      headers:{"Content-Type":"application/json","x-api-key":s.aiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model,max_tokens:4000,messages:[{role:"user",content:prompt}]})});
+    if(!r.ok)throw {code:"http",status:r.status};
+    const j=await r.json();
+    return parseLoose((j.content||[]).filter(b=>b.type==="text").map(b=>b.text).join(""));
+  }
+  const base=(S.settings.aiProvider==="custom"?s.aiBase:p.base||"").replace(/\/+$/,"");
+  if(!base)throw {code:"no_base"};
+  const body={model,messages:[{role:"user",content:prompt}]};
+  if(p.json)body.response_format={type:"json_object"};
+  const r=await fetch(base+"/chat/completions",{method:"POST",signal,
+    headers:{"Content-Type":"application/json","Authorization":"Bearer "+s.aiKey},body:JSON.stringify(body)});
   if(!r.ok)throw {code:"http",status:r.status};
   const j=await r.json();
-  return parseLoose((j.content||[]).filter(b=>b.type==="text").map(b=>b.text).join(""));
+  return parseLoose(j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content);
 }
 function aiErrMsg(e){
   if(!e)return "Qualcosa è andato storto. Riprova.";
   if(e.code==="no_model")return "Indica il nome del modello in Impostazioni › Assistente.";
+  if(e.code==="no_base")return "Indica l'indirizzo del servizio in Impostazioni › Assistente.";
   if(e.code==="invalid_json")return AI_ERR.invalid_json;
   if(e.code==="http"){
     if(e.status===401||e.status===403)return "La chiave API non è valida o non ha i permessi. Controllala nelle impostazioni.";
@@ -908,7 +938,7 @@ function aiErrMsg(e){
     if(e.status>=500)return "Il servizio non risponde in questo momento. Riprova tra poco.";
     return `Errore del servizio (${e.status}). Riprova.`;
   }
-  if(e instanceof TypeError)return "Connessione non riuscita. Controlla la rete e riprova.";
+  if(e instanceof TypeError)return "Connessione non riuscita. Controlla la rete. Se il problema resta, questo servizio potrebbe non accettare richieste dirette dall'app: prova Gemini o OpenRouter.";
   return "Qualcosa è andato storto. Riprova.";
 }
 function aiPrompt(text){
@@ -954,7 +984,7 @@ function assistHTML(){
    ${a.status==="loading"?"":`<button class="btn" ${avail?"":"disabled"}>${I("spark",17)}${a.status==="done"?"Chiedi di nuovo":"Prepara il piano"}</button>`}
    ${!avail?`<p class="hint" style="padding:0">Per usare l'assistente serve la tua chiave API. <button type="button" data-act="aisettings">Aggiungila nelle impostazioni</button></p>`:""}
    ${body}
-   <p class="note-ai">L'assistente usa la chiave API che hai inserito nelle impostazioni (${S.settings.aiProvider==="openai"?"OpenAI":"Claude"}). La richiesta parte da questo dispositivo e la chiave non esce mai dal telefono, se non verso il servizio scelto.</p>
+   <p class="note-ai">L'assistente usa la chiave API che hai inserito nelle impostazioni (${esc(prov().name)}). La richiesta parte da questo dispositivo e la chiave non esce mai dal telefono, se non verso il servizio scelto.</p>
   </form></div>`;
 }
 async function runAssist(fresh){
@@ -1049,9 +1079,11 @@ function vSettings(){
     +`<div class="srow"><span class="sl">Notifiche del sistema<em>${({granted:"Attive: avvisi anche con Nodo in secondo piano",denied:"Bloccate: riattivale dalle impostazioni del telefono o del browser",default:"Ricevi gli avvisi anche quando sei in un'altra app",unsupported:"Su iPhone servono Nodo aggiunto alla Home e iOS 16.4 o successivo"})[notifPerm()]}</em></span>${notifPerm()==="default"?`<button class="btn sm ghost" data-act="askperm">Attiva</button>`:""}</div>`
     +`<div class="srow"><span class="sl">Prova una notifica</span><button class="btn sm ghost" data-act="testnotif">Invia</button></div>`,
     "Gli avvisi arrivano mentre Nodo è aperto o in secondo piano. Con l'app chiusa del tutto servirà la versione per gli store.")}
-  ${grp("Assistente",selRow("aiProvider","Servizio",[["anthropic","Claude (Anthropic)"],["openai","OpenAI"]])
-    +inRow("aiKey","Chiave API","password",s.aiProvider==="openai"?"sk-…":"sk-ant-…")
-    +inRow("aiModel","Modello","text",s.aiProvider==="openai"?"Nome del modello (obbligatorio)":"Vuoto = "+DEFAULT_CLAUDE_MODEL)
+  ${grp("Assistente",selRow("aiProvider","Servizio",Object.entries(PROVIDERS).map(([k,v])=>[k,v.name]))
+    +(s.aiProvider==="custom"?inRow("aiBase","Indirizzo del servizio","url","https://…/v1"):"")
+    +inRow("aiKey","Chiave API","password",prov().ph||"La tua chiave")
+    +inRow("aiModel","Modello","text",prov().def?"Vuoto = "+prov().def:(s.aiProvider==="openrouter"?"es. fornitore/nome-modello (obbligatorio)":"Nome del modello (obbligatorio)"))
+    +`<div class="srow"><span class="sl">Prova la connessione${prov().keyAt?`<em>Chiave da ${prov().keyAt}</em>`:""}</span><button class="btn sm ghost" data-act="aitest" ${s.aiKey?"":"disabled"}>Prova</button></div>`
     +segRow("aiDetail","Dettaglio del piano",[["brief","Essenziale"],["normal","Normale"],["detailed","Dettagliato"]])
     +swRow("aiNote","Aggiungi sempre una nota di riepilogo"),
     "La chiave resta salvata solo su questo dispositivo e non finisce nei backup. Usa una chiave personale con un limite di spesa impostato nel tuo account.")}
@@ -1061,7 +1093,7 @@ function vSettings(){
     +`<div class="srow"><span class="sl" style="color:var(--red)">Cancella tutti i dati</span>${setConfirm==="wipe"?`<span class="actions"><button class="btn sm danger" data-act="dowipe">Cancella</button><button class="btn sm ghost" data-act="askconf" data-v="">Annulla</button></span>`:`<button class="btn sm ghost" data-act="askconf" data-v="wipe" style="color:var(--red)">Cancella</button>`}</div>`,
     "")}
   <div class="actions" style="justify-content:center"><button class="btn sm ghost" data-act="onb-open">Rivedi la presentazione</button></div>
-  <p class="hint" style="text-align:center">Nodo · versione 0.6.1</p></div>`;
+  <p class="hint" style="text-align:center">Nodo · versione 0.7</p></div>`;
 }
 
 /* ---------- notifiche ---------- */
@@ -1279,7 +1311,10 @@ document.addEventListener("click",e=>{
     case "nb-done":{const m=nbMeta[b.dataset.nid];const t=m&&S.tasks.find(x=>x.id===m.id);if(t&&!t.done){t.done=true;if(t.noteId)setNoteLine(t);save();render(false);toast("Completata")}dismissNb(b.dataset.nid);break}
     case "nb-snooze":{const m=nbMeta[b.dataset.nid];if(m&&m.key){delete S.notified[m.key];snoozed[m.key]=Date.now()+10*60e3;save();toast("Te lo ricordo tra 10 minuti")}dismissNb(b.dataset.nid);break}
     case "nb-oggi": dismissNb(b.dataset.nid);if(editor){commitEditor();editor=null}tab="oggi";render(true);break;
-    case "export":{const data=JSON.stringify({...S,settings:{...S.settings,aiKey:""}},null,2);
+    case "aitest":{b.disabled=true;b.textContent="…";const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),30000);
+      callAI('Rispondi solo con questo JSON: {"ok":true}',ctl.signal).then(r=>{toast(r&&r.ok?`${prov().name} collegato: funziona`:"Collegato, ma la risposta è insolita")})
+        .catch(err=>toast(err&&err.name==="AbortError"?"Nessuna risposta entro 30 secondi":aiErrMsg(err))).finally(()=>{clearTimeout(tm);b.disabled=false;b.textContent="Prova"});break}
+    case "export":{const data=JSON.stringify({...S,settings:{...S.settings,aiKey:"",aiSaved:{}}},null,2);
       const url=URL.createObjectURL(new Blob([data],{type:"application/json"}));const a=document.createElement("a");a.href=url;a.download=`nodo-backup-${T()}.json`;
       document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);toast("Backup scaricato");break}
     case "askperm": if("Notification" in window)Notification.requestPermission().then(p=>{render(false);if(p==="granted")toast("Notifiche del sistema attive")}).catch(()=>{});break;
@@ -1312,11 +1347,14 @@ document.addEventListener("change",e=>{
   const t=e.target;
   if(t.dataset&&t.dataset.set){const k=t.dataset.set;let v=t.type==="checkbox"?t.checked:(t.dataset.num?+t.value:t.value);if(typeof v==="string")v=v.trim();
     if(t.type==="time"&&!v)return;
+    if(k==="aiProvider"){const st=S.settings,old=st.aiProvider;
+      st.aiSaved[old]={key:st.aiKey,model:st.aiModel,base:st.aiBase};
+      const nx=st.aiSaved[v]||{};st.aiKey=nx.key||"";st.aiModel=nx.model||"";st.aiBase=nx.base||""}
     S.settings[k]=v;save();
     if(k==="reduceMotion"||k==="reduceGlass")applyAppearance();
     if((k==="focusWork"||k==="focusBreak")&&!FS.running)FS.remaining=FS.mode==="work"?F.work:F.brk;
     if(["notifTasks","notifEvents","morning","quietOn","aiProvider"].includes(k))setTimeout(()=>render(false),300);
-    if(k==="aiKey"&&v)toast("Chiave API salvata su questo dispositivo");
+    if(k==="aiKey"){if(v)toast("Chiave API salvata su questo dispositivo");const tb=document.querySelector('[data-act="aitest"]');if(tb)tb.disabled=!v}
     if(k.startsWith("notif")||k.startsWith("quiet")||k.startsWith("morning")||k.endsWith("Lead"))checkNotifs();
     return}
   if(t.id==="impfile"&&t.files&&t.files[0]){t.files[0].text().then(txt=>{const d=JSON.parse(txt);

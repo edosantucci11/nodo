@@ -14,7 +14,7 @@ Nodo è una **web app installabile**: si apre dal browser e si aggiunge alla sch
 - **Attività** con priorità (`!1`–`!4`), scadenze, filtri.
 - **Calendario** mensile.
 - **Focus**: timer Pomodoro collegato a un'attività.
-- **Assistente AI** (Claude o OpenAI) con la tua chiave API.
+- **Assistente AI** con la tua chiave API: Gemini, Claude, OpenAI, Mistral, Groq, DeepSeek, xAI, OpenRouter o un altro servizio compatibile OpenAI.
 - **Notifiche**: promemoria per attività ed eventi, riepilogo del mattino, ore di silenzio.
 - **Impostazioni**: tema, colori, animazioni, trasparenza, sezioni di Oggi, valori predefiniti, backup.
 
@@ -63,10 +63,23 @@ GitHub Pages ospita l'app gratis e con HTTPS, che serve per installarla e per fa
 
 ## Assistente AI
 
-Serve una chiave API personale, da inserire in **Impostazioni › Assistente**:
+Serve una chiave API personale, da inserire in **Impostazioni › Assistente**. Dopo averla inserita, premi **Prova** per verificare che funzioni.
 
-- **Claude**: crea la chiave su [console.anthropic.com](https://console.anthropic.com). Se lasci vuoto il campo *Modello* viene usato `claude-sonnet-5-5`.
-- **OpenAI**: crea la chiave su [platform.openai.com](https://platform.openai.com) e scrivi il nome del modello che vuoi usare.
+| Servizio | Dove si crea la chiave | Modello se lasci vuoto il campo |
+| --- | --- | --- |
+| Gemini (Google) | [aistudio.google.com](https://aistudio.google.com) | `gemini-3.8-flash` |
+| Claude (Anthropic) | [console.anthropic.com](https://console.anthropic.com) | `claude-sonnet-5-5` |
+| OpenAI | [platform.openai.com](https://platform.openai.com) | da indicare |
+| Mistral | [console.mistral.ai](https://console.mistral.ai) | da indicare |
+| Groq | [console.groq.com](https://console.groq.com) | da indicare |
+| DeepSeek | [platform.deepseek.com](https://platform.deepseek.com) | da indicare |
+| xAI (Grok) | [console.x.ai](https://console.x.ai) | da indicare |
+| OpenRouter | [openrouter.ai](https://openrouter.ai) | da indicare, nel formato `fornitore/modello` |
+| Altro | il servizio che usi | da indicare, insieme all'indirizzo (deve essere compatibile OpenAI) |
+
+Ogni servizio ricorda la sua chiave: puoi passare da uno all'altro senza reinserirla.
+
+Gemini ha un livello gratuito con limiti di utilizzo, comodo per iniziare. Alcuni servizi potrebbero non accettare richieste dirette da un'app web: se *Prova* restituisce "Connessione non riuscita" anche con la rete attiva, usa Gemini oppure OpenRouter, che dà accesso a molti modelli con una sola chiave.
 
 La chiave resta salvata **solo su quel dispositivo** e non viene inclusa nei backup. La richiesta parte direttamente dal telefono verso il servizio scelto. Usa una chiave personale e imposta un limite di spesa nel tuo account. Non usare questa configurazione se l'app dovesse essere usata da altre persone: in quel caso la chiave va spostata su un server.
 
